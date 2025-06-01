@@ -937,7 +937,7 @@ export default function Automata() {
   const [showTemplateLimitWarning, setShowTemplateLimitWarning] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [edgePopupPosition, setEdgePopupPosition] = useState({ x: 0, y: 0 });
-  const [isValidationMinimized, setIsValidationMinimized] = useState(false);
+  const [isValidationMinimized, setIsValidationMinimized] = useState(true);
 
   // Add new state for user node
   const [userNode, setUserNode] = useState<Node>({
