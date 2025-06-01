@@ -4,19 +4,27 @@ import type { ServerResources } from '../types/architecture';
 
 const ConfigContainer = styled.div`
   background: white;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  min-width: 300px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 `;
 
 const Title = styled.h3`
-  margin: 0 0 16px;
+  margin: 0;
   color: #333;
   font-size: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
 `;
 
 const CloseButton = styled.button`
@@ -25,100 +33,98 @@ const CloseButton = styled.button`
   color: #666;
   cursor: pointer;
   font-size: 20px;
-  padding: 0;
+  padding: 4px;
   &:hover {
     color: #333;
   }
 `;
 
-const FormGroup = styled.div`
-  margin-bottom: 12px;
+const ResourceSection = styled.div`
+  margin-bottom: 8px;
 `;
 
-const Label = styled.label`
+const ResourceLabel = styled.label`
   display: block;
   margin-bottom: 4px;
   color: #666;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
 `;
 
-const Input = styled.input`
+const ResourceInput = styled.input`
   width: 100%;
-  padding: 8px;
+  padding: 6px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   &:focus {
-    outline: none;
     border-color: #4a90e2;
+    outline: none;
   }
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  position: sticky;
+  bottom: 0;
+  background: white;
 `;
 
-const Button = styled.button`
-  width: 100%;
-  padding: 8px;
+const SaveButton = styled.button`
+  padding: 8px 16px;
   background: #4a90e2;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  margin-top: 16px;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
   &:hover {
     background: #357abd;
   }
 `;
 
-const ResourceValue = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-`;
-
-const ValueDisplay = styled.span`
-  color: #333;
-  font-weight: 500;
-`;
-
-const Unit = styled.span`
-  color: #666;
-  font-size: 12px;
-`;
-
-const CostDisplay = styled.div`
-  margin-top: 8px;
-  padding: 8px;
-  background: #f8f9fa;
+const DeleteButton = styled.button`
+  padding: 8px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
   border-radius: 4px;
-  font-size: 12px;
+  cursor: pointer;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  &:hover {
+    background: #c0392b;
+  }
 `;
 
-const CostItem = styled.div`
+const CostSection = styled.div`
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+`;
+
+const CostRow = styled.div`
   display: flex;
   justify-content: space-between;
-  margin: 4px 0;
+  font-size: 12px;
   color: #666;
+  margin: 4px 0;
 `;
 
-const TotalCost = styled.div`
+const TotalCost = styled(CostRow)`
+  font-weight: 600;
+  color: #333;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #ddd;
-  font-weight: 600;
-  color: #333;
 `;
 
 // Resource costs per unit (monthly)
@@ -134,6 +140,7 @@ interface ServerConfigProps {
   resources: ServerResources;
   onClose: () => void;
   onSave: (nodeId: string, resources: ServerResources) => void;
+  onDelete: () => void;
 }
 
 const serverTypes = [
@@ -199,8 +206,8 @@ const serverTypes = [
   },
 ];
 
-export default function ServerConfig({ nodeId, resources, onClose, onSave }: ServerConfigProps) {
-  const [config, setConfig] = React.useState<ServerResources>(resources);
+export default function ServerConfig({ nodeId, resources, onClose, onSave, onDelete }: ServerConfigProps) {
+  const [localResources, setLocalResources] = React.useState(resources);
 
   const calculateCost = (resources: ServerResources) => {
     const costs = {
@@ -217,125 +224,90 @@ export default function ServerConfig({ nodeId, resources, onClose, onSave }: Ser
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const preset = serverTypes.find(t => t.name === e.target.value);
     if (preset) {
-      setConfig(preset.resources);
+      setLocalResources(preset.resources);
     }
   };
 
-  const handleInputChange = (field: keyof ServerResources) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value)) {
-      setConfig(prev => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const handleSave = () => {
-    onSave(nodeId, config);
-    onClose();
-  };
-
-  const { costs, total } = calculateCost(config);
+  const { costs, total } = calculateCost(localResources);
 
   return (
     <ConfigContainer>
       <Title>
-        Server Configuration
+        Configure Server
         <CloseButton onClick={onClose}>&times;</CloseButton>
       </Title>
 
-      <FormGroup>
-        <Label>Server Type</Label>
-        <Select onChange={handlePresetChange}>
-          <option value="">Custom Configuration</option>
-          {serverTypes.map(type => (
-            <option key={type.name} value={type.name}>
-              {type.name}
-            </option>
-          ))}
-        </Select>
-      </FormGroup>
-
-      <FormGroup>
-        <Label>CPU Speed (GHz)</Label>
-        <Input
+      <ResourceSection>
+        <ResourceLabel>CPU (GHz)</ResourceLabel>
+        <ResourceInput
           type="number"
+          value={localResources.cpu}
+          onChange={(e) => setLocalResources(prev => ({ ...prev, cpu: Number(e.target.value) }))}
+          min="0.1"
           step="0.1"
-          value={config.cpu}
-          onChange={handleInputChange('cpu')}
         />
-      </FormGroup>
+      </ResourceSection>
 
-      <FormGroup>
-        <Label>CPU Cores</Label>
-        <Input
+      <ResourceSection>
+        <ResourceLabel>CPU Cores</ResourceLabel>
+        <ResourceInput
           type="number"
+          value={localResources.cpuCores}
+          onChange={(e) => setLocalResources(prev => ({ ...prev, cpuCores: Number(e.target.value) }))}
+          min="1"
           step="1"
-          value={config.cpuCores}
-          onChange={handleInputChange('cpuCores')}
         />
-      </FormGroup>
+      </ResourceSection>
 
-      <FormGroup>
-        <Label>Memory (GB)</Label>
-        <Input
+      <ResourceSection>
+        <ResourceLabel>Memory (GB)</ResourceLabel>
+        <ResourceInput
           type="number"
+          value={localResources.memory}
+          onChange={(e) => setLocalResources(prev => ({ ...prev, memory: Number(e.target.value) }))}
+          min="1"
           step="1"
-          value={config.memory}
-          onChange={handleInputChange('memory')}
         />
-      </FormGroup>
+      </ResourceSection>
 
-      <FormGroup>
-        <Label>Network Bandwidth (Mbps)</Label>
-        <Input
+      <ResourceSection>
+        <ResourceLabel>Network Bandwidth (Mbps)</ResourceLabel>
+        <ResourceInput
           type="number"
+          value={localResources.networkBandwidth}
+          onChange={(e) => setLocalResources(prev => ({ ...prev, networkBandwidth: Number(e.target.value) }))}
+          min="100"
           step="100"
-          value={config.networkBandwidth}
-          onChange={handleInputChange('networkBandwidth')}
         />
-      </FormGroup>
+      </ResourceSection>
 
-      <FormGroup>
-        <Label>Current Configuration</Label>
-        <ResourceValue>
-          <ValueDisplay>{config.cpu} GHz</ValueDisplay>
-          <Unit>× {config.cpuCores} cores</Unit>
-        </ResourceValue>
-        <ResourceValue>
-          <ValueDisplay>{config.memory} GB</ValueDisplay>
-          <Unit>RAM</Unit>
-        </ResourceValue>
-        <ResourceValue>
-          <ValueDisplay>{config.networkBandwidth} Mbps</ValueDisplay>
-          <Unit>Network</Unit>
-        </ResourceValue>
-      </FormGroup>
-
-      <CostDisplay>
-        <CostItem>
+      <CostSection>
+        <CostRow>
           <span>CPU Cost:</span>
           <span>${costs.cpu.toFixed(2)}/month</span>
-        </CostItem>
-        <CostItem>
+        </CostRow>
+        <CostRow>
           <span>CPU Cores Cost:</span>
           <span>${costs.cpuCores.toFixed(2)}/month</span>
-        </CostItem>
-        <CostItem>
+        </CostRow>
+        <CostRow>
           <span>Memory Cost:</span>
           <span>${costs.memory.toFixed(2)}/month</span>
-        </CostItem>
-        <CostItem>
+        </CostRow>
+        <CostRow>
           <span>Network Cost:</span>
           <span>${costs.networkBandwidth.toFixed(2)}/month</span>
-        </CostItem>
+        </CostRow>
         <TotalCost>
           <span>Total Monthly Cost:</span>
           <span>${total.toFixed(2)}</span>
         </TotalCost>
-      </CostDisplay>
+      </CostSection>
 
-      <Button onClick={handleSave}>Save Configuration</Button>
+      <ButtonGroup>
+        <SaveButton onClick={() => onSave(nodeId, localResources)}>Save Changes</SaveButton>
+        <DeleteButton onClick={onDelete}>Delete Node</DeleteButton>
+      </ButtonGroup>
     </ConfigContainer>
   );
 } 

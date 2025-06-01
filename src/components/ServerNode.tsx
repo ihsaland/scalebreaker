@@ -135,6 +135,7 @@ interface ServerNodeProps {
     isHealthy: boolean;
     isStartingPoint: boolean;
     isEndPoint: boolean;
+    serverType?: string;
   };
 }
 
@@ -146,7 +147,7 @@ export default function ServerNode({ data }: ServerNodeProps) {
     >
       <HandleStyled type="target" position={Position.Left} />
       <NodeHeader>
-        <span>{data.id}</span>
+        <span>{data.serverType || data.id}</span>
         <HealthIndicator isHealthy={data.isHealthy} />
       </NodeHeader>
       <NodeType>{data.type}</NodeType>
