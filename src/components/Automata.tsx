@@ -33,6 +33,11 @@ const Container = styled.div`
   align-items: center;
   padding: 16px;
   box-sizing: border-box;
+
+  @media (max-width: 600px) {
+    padding: 4px;
+    height: auto;
+  }
 `;
 
 const MainContent = styled.div`
@@ -47,6 +52,13 @@ const MainContent = styled.div`
   justify-content: center;
   align-items: center;
   height: calc(100vh - 60px);
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    padding: 4px;
+    gap: 8px;
+    height: auto;
+  }
 `;
 
 const FlowContainer = styled.div`
@@ -60,6 +72,18 @@ const FlowContainer = styled.div`
   padding: 16px;
   box-sizing: border-box;
   border: 1px solid rgba(0,0,0,0.05);
+
+  @media (max-width: 900px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 4px;
+  }
+  @media (max-width: 600px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 2px;
+    height: 60vh;
+  }
 `;
 
 const ControlPanel = styled.div`
@@ -79,22 +103,21 @@ const ControlPanel = styled.div`
   scrollbar-color: #4a90e2 #f0f0f0;
   border: 1px solid rgba(0,0,0,0.05);
 
-  &::-webkit-scrollbar {
-    width: 6px;
+  @media (max-width: 900px) {
+    left: 0;
+    transform: none;
+    width: 90vw;
+    max-width: 95vw;
+    top: 8px;
+    padding: 12px;
+    position: static;
   }
-
-  &::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #4a90e2;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: #357abd;
+  @media (max-width: 600px) {
+    width: 98vw;
+    max-width: 100vw;
+    padding: 4px;
+    font-size: 13px;
+    position: static;
   }
 `;
 
@@ -292,22 +315,22 @@ const MetricsPanel = styled.div`
   scrollbar-color: #4a90e2 #f0f0f0;
   border: 1px solid rgba(0,0,0,0.05);
 
-  &::-webkit-scrollbar {
-    width: 6px;
+  @media (max-width: 900px) {
+    left: auto;
+    right: 0;
+    transform: none;
+    width: 90vw;
+    max-width: 95vw;
+    top: 8px;
+    padding: 12px;
+    position: static;
   }
-
-  &::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #4a90e2;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: #357abd;
+  @media (max-width: 600px) {
+    width: 98vw;
+    max-width: 100vw;
+    padding: 4px;
+    font-size: 13px;
+    position: static;
   }
 `;
 
@@ -350,6 +373,15 @@ const ViewToggle = styled.div`
   border: 1px solid rgba(0,0,0,0.05);
   height: 40px;
   align-items: center;
+
+  @media (max-width: 600px) {
+    min-width: 0;
+    width: 98vw;
+    flex-wrap: wrap;
+    padding: 4px 2px;
+    height: auto;
+    top: 2px;
+  }
 `;
 
 const ToggleButton = styled.button<{ active: boolean }>`
