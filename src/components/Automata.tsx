@@ -139,7 +139,6 @@ const Button = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 13px;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
 
   &:hover {
@@ -518,18 +517,24 @@ const defaultResources: ServerResources = {
   networkBandwidth: 1000,
 };
 
-const ValidationStatusDisplay = styled.div`
+const ValidationStatusDisplay = styled.div<{ isMinimized: boolean }>`
   position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 10;
+  top: 80px;
+  left: 20px;
+  z-index: 1000;
   background: white;
-  padding: 16px;
+  padding: ${props => props.isMinimized ? '8px 16px' : '16px'};
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  min-width: 300px;
+  min-width: ${props => props.isMinimized ? '200px' : '300px'};
   max-width: 400px;
   border: 1px solid rgba(0,0,0,0.05);
+  max-height: ${props => props.isMinimized ? 'auto' : 'calc(100vh - 200px)'};
+  overflow-y: ${props => props.isMinimized ? 'hidden' : 'auto'};
+  margin-right: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  transform: none;
 `;
 
 const ValidationStatusTitle = styled.div<{ isValid: boolean }>`
@@ -538,8 +543,31 @@ const ValidationStatusTitle = styled.div<{ isValid: boolean }>`
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   color: ${props => props.isValid ? '#2ecc71' : '#e74c3c'};
+  gap: 12px;
+`;
+
+const ValidationToggleButton = styled.button`
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  min-width: 28px;
+  height: 28px;
+  
+  &:hover {
+    background: #e9ecef;
+    color: #333;
+    transform: scale(1.05);
+  }
 `;
 
 const ValidationStatusList = styled.div`
@@ -650,17 +678,37 @@ const MetricValue = styled.div`
 
 const calculateNodePattern = (nodes: Node[]) => {
   return nodes.map(node => {
-    const id = node.id.toLowerCase();
-    if (id.includes('gateway') || id.includes('lb')) return 'lb';
-    if (id.includes('cdn')) return 'cdn';
-    if (id.includes('cache')) return 'cache';
-    if (id.includes('mq') || id.includes('queue')) return 'mq';
-    if (id.includes('micro') || id.includes('service')) return 'micro';
-    if (id.includes('asg') || id.includes('autoscale')) return 'asg';
-    if (id.includes('db') || id.includes('database')) return 'db';
-    if (id.includes('dr') || id.includes('backup')) return 'dr';
-    return 'app';
-  });
+    // Skip user node
+    if (node.id === 'user') return '';
+    
+    // Use the node's data.type property for accurate type identification
+    const type = node.data.type;
+    
+    // Map the type to the required pattern format
+    switch (type) {
+      case 'lb':
+      case 'gateway':
+        return 'lb';
+      case 'cdn':
+        return 'cdn';
+      case 'cache':
+        return 'cache';
+      case 'mq':
+        return 'mq';
+      case 'micro':
+        return 'micro';
+      case 'app':
+        return 'app';
+      case 'asg':
+        return 'asg';
+      case 'db':
+        return 'db';
+      case 'dr':
+        return 'dr';
+      default:
+        return type;
+    }
+  }).filter(Boolean); // Remove empty strings
 };
 
 const LevelManagerContainer = styled.div`
@@ -701,6 +749,7 @@ interface ServerConfigProps {
   node: Node;
   onUpdate: (updatedNode: Node) => void;
   onClose: () => void;
+  onDelete: () => void;
 }
 
 // Update server type definitions with more specialized configurations
@@ -774,6 +823,62 @@ interface ValidationResult {
   warnings: string[];
 }
 
+const EdgePopup = styled.div`
+  position: fixed;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  z-index: 1000;
+  min-width: 200px;
+  border: 1px solid rgba(0,0,0,0.05);
+  pointer-events: auto;
+  transform-origin: center bottom;
+  animation: popupFadeIn 0.2s ease-out;
+  @keyframes popupFadeIn {
+    from { opacity: 0; transform: translate(-50%, -90%); }
+    to { opacity: 1; transform: translate(-50%, -100%); }
+  }
+`;
+
+const EdgeButtonGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const EdgeButton = styled.button<{ variant?: 'delete' | 'cancel' }>`
+  padding: 8px 16px;
+  background: ${props => props.variant === 'delete' ? '#e74c3c' : '#95a5a6'};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => props.variant === 'delete' ? '#c0392b' : '#7f8c8d'};
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const EdgePopupTitle = styled.div`
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  text-align: center;
+`;
+
 export default function Automata() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -798,6 +903,9 @@ export default function Automata() {
   const [showControlPanel, setShowControlPanel] = useState(true);
   const [showMetricsPanel, setShowMetricsPanel] = useState(true);
   const [showTemplateLimitWarning, setShowTemplateLimitWarning] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [edgePopupPosition, setEdgePopupPosition] = useState({ x: 0, y: 0 });
+  const [isValidationMinimized, setIsValidationMinimized] = useState(false);
 
   // Add new state for user node
   const [userNode, setUserNode] = useState<Node>({
@@ -979,7 +1087,9 @@ export default function Automata() {
         maxThroughput: 0,
         isHealthy: true,
         serverType: serverType.name,
-        description: serverType.description
+        description: serverType.description,
+        isStartingPoint: false,
+        isEndPoint: false
       },
     };
     setNodes((nds) => [...nds, newNode]);
@@ -1038,7 +1148,7 @@ export default function Automata() {
       position: { x: Math.random() * 500, y: Math.random() * 500 },
       data: {
         id: `db_${nodeId}`,
-        type: 'database',
+        type: 'db',  // Changed from 'database' to 'db' to match the pattern
         resources: {
           ...defaultResources,
           // Increase resources for database
@@ -1051,6 +1161,7 @@ export default function Automata() {
         maxThroughput: 0,
         isHealthy: true,
         isDatabase: true,
+        serverType: 'Database Server',  // Added serverType for display
         databaseType: 'postgresql', // Default database type
         replicationFactor: 1
       },
@@ -1252,10 +1363,191 @@ export default function Automata() {
       connectedNodes.add(edge.source);
       connectedNodes.add(edge.target);
     });
+
+    // Get incoming and outgoing connections for each node
+    const incomingConnections = new Map<string, number>();
+    const outgoingConnections = new Map<string, number>();
+    edges.forEach(edge => {
+      incomingConnections.set(edge.target, (incomingConnections.get(edge.target) || 0) + 1);
+      outgoingConnections.set(edge.source, (outgoingConnections.get(edge.source) || 0) + 1);
+    });
+
+    // Production Architecture Requirements
+    const hasLoadBalancer = nodes.some(node => node.data.type === 'lb');
+    const hasDatabase = nodes.some(node => node.data.type === 'db');
+    const hasCache = nodes.some(node => node.data.type === 'cache');
+    const hasMultipleAppServers = nodes.filter(node => 
+      node.data.type === 'app' || node.data.type === 'micro'
+    ).length > 1;
+
+    // Validate entry point connections
+    if (entryPoint) {
+      const entryPointIncoming = incomingConnections.get(entryPoint.id) || 0;
+      const entryPointOutgoing = outgoingConnections.get(entryPoint.id) || 0;
+
+      // Entry point must have incoming connection from user
+      const hasUserConnection = edges.some(edge => 
+        edge.source === 'user' && edge.target === entryPoint.id
+      );
+      if (!hasUserConnection) {
+        errors.push('Entry point must have an incoming connection from the user');
+        isValid = false;
+      }
+
+      // Entry point must have outgoing connections
+      if (entryPointOutgoing === 0) {
+        errors.push('Entry point must have outgoing connections');
+        isValid = false;
+      }
+    }
+
+    // Production Requirements Validation
+    if (!hasLoadBalancer) {
+      errors.push('Production architecture must include a load balancer for high availability');
+      isValid = false;
+    }
+
+    if (!hasDatabase) {
+      errors.push('Production architecture must include a database for data persistence');
+      isValid = false;
+    }
+
+    if (!hasCache) {
+      warnings.push('Consider adding a cache layer for improved performance');
+    }
+
+    if (!hasMultipleAppServers) {
+      warnings.push('Consider adding multiple application servers for redundancy');
+    }
+
+    // Validate each node based on its type
     nodes.forEach(node => {
       if (!connectedNodes.has(node.id) && node.id !== 'user') {
-        errors.push(`Node ${node.id} is isolated`);
+        const nodeName = node.data.serverType || node.data.type;
+        errors.push(`Node "${nodeName}" is isolated`);
         isValid = false;
+      }
+
+      const nodeType = node.data.type;
+      const incoming = incomingConnections.get(node.id) || 0;
+      const outgoing = outgoingConnections.get(node.id) || 0;
+
+      // Validate based on node type
+      switch (nodeType) {
+        case 'lb':
+        case 'gateway':
+          // Load balancer must have incoming connection from user or entry point
+          const hasValidIncoming = edges.some(edge => 
+            (edge.source === 'user' || edge.source === entryPoint?.id) && 
+            edge.target === node.id
+          );
+          if (!hasValidIncoming) {
+            errors.push(`Load Balancer/Gateway "${node.data.serverType}" must have incoming connection from user or entry point`);
+            isValid = false;
+          }
+          if (outgoing === 0) {
+            errors.push(`Load Balancer/Gateway "${node.data.serverType}" must have outgoing connections`);
+            isValid = false;
+          }
+          // Load balancer should connect to multiple app servers
+          const lbOutgoingToApps = edges.filter(edge => 
+            edge.source === node.id && 
+            nodes.some(n => n.id === edge.target && (n.data.type === 'app' || n.data.type === 'micro'))
+          ).length;
+          if (lbOutgoingToApps < 2) {
+            warnings.push(`Load Balancer "${node.data.serverType}" should connect to multiple application servers for redundancy`);
+          }
+          break;
+
+        case 'app':
+        case 'micro':
+          if (incoming === 0) {
+            errors.push(`Application/Microservice "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          // App servers should connect to both cache and database
+          const hasCacheConnection = edges.some(edge => 
+            edge.source === node.id && 
+            nodes.some(n => n.id === edge.target && n.data.type === 'cache')
+          );
+          const hasDbConnection = edges.some(edge => 
+            edge.source === node.id && 
+            nodes.some(n => n.id === edge.target && n.data.type === 'db')
+          );
+          if (!hasCacheConnection) {
+            warnings.push(`Application "${node.data.serverType}" should connect to a cache for better performance`);
+          }
+          if (!hasDbConnection) {
+            errors.push(`Application "${node.data.serverType}" must connect to a database`);
+            isValid = false;
+          }
+          break;
+
+        case 'db':
+          if (incoming === 0) {
+            errors.push(`Database "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          if (outgoing > 0) {
+            errors.push(`Database "${node.data.serverType}" should not have outgoing connections`);
+            isValid = false;
+          }
+          // Check for database redundancy
+          const dbCount = nodes.filter(n => n.data.type === 'db').length;
+          if (dbCount < 2) {
+            warnings.push('Consider adding database replication for high availability');
+          }
+          break;
+
+        case 'cache':
+          if (incoming === 0) {
+            errors.push(`Cache "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          if (outgoing > 0) {
+            warnings.push(`Cache "${node.data.serverType}" typically should not have outgoing connections`);
+          }
+          // Check for cache redundancy
+          const cacheCount = nodes.filter(n => n.data.type === 'cache').length;
+          if (cacheCount < 2) {
+            warnings.push('Consider adding cache replication for high availability');
+          }
+          break;
+
+        case 'mq':
+          if (incoming === 0) {
+            errors.push(`Message Queue "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          if (outgoing === 0) {
+            warnings.push(`Message Queue "${node.data.serverType}" typically should have outgoing connections`);
+          }
+          // Check for message queue redundancy
+          const mqCount = nodes.filter(n => n.data.type === 'mq').length;
+          if (mqCount < 2) {
+            warnings.push('Consider adding message queue replication for high availability');
+          }
+          break;
+
+        case 'cdn':
+          if (incoming === 0) {
+            errors.push(`CDN "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          if (outgoing === 0) {
+            warnings.push(`CDN "${node.data.serverType}" typically should have outgoing connections`);
+          }
+          break;
+
+        case 'asg':
+          if (incoming === 0) {
+            errors.push(`Auto Scaling Group "${node.data.serverType}" must have incoming connections`);
+            isValid = false;
+          }
+          if (outgoing === 0) {
+            warnings.push(`Auto Scaling Group "${node.data.serverType}" typically should have outgoing connections`);
+          }
+          break;
       }
     });
 
@@ -1285,40 +1577,6 @@ export default function Automata() {
       warnings.push('Architecture contains cycles');
     }
 
-    // Check for dead ends
-    const hasOutgoingEdges = new Set<string>();
-    edges.forEach(edge => hasOutgoingEdges.add(edge.source));
-    nodes.forEach(node => {
-      if (!hasOutgoingEdges.has(node.id) && node.id !== 'user' && node.data.type !== 'database') {
-        warnings.push(`Node ${node.id} has no outgoing connections`);
-      }
-    });
-
-    // Check for proper state transitions
-    const invalidTransitions = edges.filter(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      return sourceNode && targetNode && 
-             sourceNode.data.type === 'database' && 
-             targetNode.data.type === 'database';
-    });
-
-    if (invalidTransitions.length > 0) {
-      errors.push('Invalid transitions between database nodes');
-      isValid = false;
-    }
-
-    // Check for proper entry point connections
-    if (entryPoint) {
-      const entryPointEdges = edges.filter(edge => 
-        edge.source === entryPoint.id || edge.target === entryPoint.id
-      );
-      if (entryPointEdges.length === 0) {
-        errors.push('Entry point has no connections');
-        isValid = false;
-      }
-    }
-
     return { isValid, errors, warnings };
   }, [nodes, edges, entryPoint]);
 
@@ -1333,6 +1591,61 @@ export default function Automata() {
     const result = validateFiniteAutomata();
     setValidationResult(result);
   }, [validateFiniteAutomata]);
+
+  // Add edge click handler
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate popup dimensions
+    const popupWidth = 120; // min-width from styled component
+    const popupHeight = 48; // approximate height
+    
+    // Calculate position with viewport bounds
+    let x = event.clientX;
+    let y = event.clientY;
+    
+    // Ensure popup stays within viewport horizontally
+    if (x < popupWidth / 2) {
+      x = popupWidth / 2;
+    } else if (x > viewportWidth - popupWidth / 2) {
+      x = viewportWidth - popupWidth / 2;
+    }
+    
+    // Ensure popup stays within viewport vertically
+    if (y < popupHeight) {
+      // If near top, show below the click
+      y = event.clientY + 10;
+    } else {
+      // If not near top, show above the click
+      y = event.clientY - 10;
+    }
+    
+    setEdgePopupPosition({ x, y });
+    setSelectedEdge(edge);
+  }, []);
+
+  // Add edge delete handler
+  const handleEdgeDelete = useCallback(() => {
+    if (selectedEdge) {
+      setEdges(edges => edges.filter(edge => edge.id !== selectedEdge.id));
+      setSelectedEdge(null);
+    }
+  }, [selectedEdge, setEdges]);
+
+  // Add click outside handler to close edge popup
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (selectedEdge && !target.closest('.edge-popup') && !target.closest('.react-flow__edge')) {
+        setSelectedEdge(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectedEdge]);
 
   // Modify the ReactFlow component
   return (
@@ -1437,6 +1750,7 @@ export default function Automata() {
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onNodeClick={onNodeClick}
+              onEdgeClick={onEdgeClick}
               nodeTypes={nodeTypes}
               fitView
               fitViewOptions={{ padding: 0.2 }}
@@ -1467,6 +1781,19 @@ export default function Automata() {
                               }
                             : node
                         ));
+                        setShowConfig(false);
+                      }}
+                      onDelete={() => {
+                        // Remove the node
+                        setNodes(nodes => nodes.filter(node => node.id !== selectedNode.id));
+                        // Remove connected edges
+                        setEdges(edges => edges.filter(edge => 
+                          edge.source !== selectedNode.id && edge.target !== selectedNode.id
+                        ));
+                        // If it was the entry point, clear it
+                        if (entryPoint?.id === selectedNode.id) {
+                          setEntryPoint(null);
+                        }
                         setShowConfig(false);
                       }}
                     />
@@ -1817,23 +2144,56 @@ export default function Automata() {
         </div>
       )}
 
-      <ValidationStatusDisplay>
+      <ValidationStatusDisplay isMinimized={isValidationMinimized}>
         <ValidationStatusTitle isValid={validationResult.isValid}>
-          {validationResult.isValid ? '✓ Valid Architecture' : '✗ Invalid Architecture'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {validationResult.isValid ? '✓ Valid Architecture' : '✗ Invalid Architecture'}
+          </div>
+          <ValidationToggleButton 
+            onClick={() => setIsValidationMinimized(!isValidationMinimized)}
+            title={isValidationMinimized ? "Expand" : "Minimize"}
+          >
+            {isValidationMinimized ? '▼' : '▲'}
+          </ValidationToggleButton>
         </ValidationStatusTitle>
-        <ValidationStatusList>
-          {validationResult.errors.map((error, index) => (
-            <ValidationStatusItem key={`error-${index}`} type="error">
-              {error}
-            </ValidationStatusItem>
-          ))}
-          {validationResult.warnings.map((warning, index) => (
-            <ValidationStatusItem key={`warning-${index}`} type="warning">
-              {warning}
-            </ValidationStatusItem>
-          ))}
-        </ValidationStatusList>
+        {!isValidationMinimized && (
+          <ValidationStatusList>
+            {validationResult.errors.map((error, index) => (
+              <ValidationStatusItem key={`error-${index}`} type="error">
+                {error}
+              </ValidationStatusItem>
+            ))}
+            {validationResult.warnings.map((warning, index) => (
+              <ValidationStatusItem key={`warning-${index}`} type="warning">
+                {warning}
+              </ValidationStatusItem>
+            ))}
+          </ValidationStatusList>
+        )}
       </ValidationStatusDisplay>
+
+      {selectedEdge && (
+        <EdgePopup
+          className="edge-popup"
+          style={{
+            left: edgePopupPosition.x,
+            top: edgePopupPosition.y,
+            transform: edgePopupPosition.y < 48 ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
+          }}
+        >
+          <EdgePopupTitle>Connection Options</EdgePopupTitle>
+          <EdgeButtonGroup>
+            <EdgeButton variant="delete" onClick={handleEdgeDelete}>
+              <span>🗑️</span>
+              Delete
+            </EdgeButton>
+            <EdgeButton variant="cancel" onClick={() => setSelectedEdge(null)}>
+              <span>✕</span>
+              Cancel
+            </EdgeButton>
+          </EdgeButtonGroup>
+        </EdgePopup>
+      )}
     </Container>
   );
 } 
