@@ -5,9 +5,11 @@ export interface ServerResources {
   networkBandwidth: number; // in Mbps
 }
 
+export type NodeType = 'lb' | 'app' | 'db' | 'cache' | 'cdn' | 'mq' | 'micro' | 'dr' | 'gateway' | 'asg';
+
 export interface ServerNode {
   id: string;
-  type: 'server';
+  type: NodeType;
   resources: ServerResources;
   currentLoad: number;
   maxThroughput: number;

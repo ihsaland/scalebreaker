@@ -1,4 +1,4 @@
-import type { ServerResources, ArchitectureState } from '../types/architecture';
+import type { ServerResources, ArchitectureState, NodeType } from '../types/architecture';
 
 export interface CostEstimate {
   monthly: number;
@@ -185,27 +185,45 @@ export const architectureTemplates: ArchitectureTemplate[] = [
     initialState: {
       nodes: [
         {
-          id: "server_1",
-          type: "server",
+          id: "app_1",
+          type: "app",
           resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 1000,
           isHealthy: true,
         },
+        {
+          id: "db_1",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 800,
+          isHealthy: true,
+        }
       ],
-      connections: [],
+      connections: [
+        {
+          id: "conn_1",
+          source: "app_1",
+          target: "db_1",
+          bandwidth: 1000,
+          currentLoad: 0
+        }
+      ],
       metrics: {
         totalThroughput: 0,
         systemHealth: 100,
         bottleneckNodes: [],
-        maxAchievableThroughput: 0,
-      },
-    },
+        maxAchievableThroughput: 800,
+        latency: 50,
+        reliability: 99.9
+      }
+    }
   },
   {
-    name: "Basic Load Balancer",
-    description: "Simple two-tier architecture with a load balancer and two application servers",
-    recommendedThroughput: 2000,
+    name: "Load Balanced",
+    description: "A load-balanced setup with multiple application servers",
+    recommendedThroughput: 5000,
     complexity: 'basic',
     category: 'Web Applications',
     costEstimate: {
@@ -220,36 +238,24 @@ export const architectureTemplates: ArchitectureTemplate[] = [
     },
     bestPractices: [
       {
+        title: "Session Management",
+        description: "Implement sticky sessions or distributed session storage",
+        impact: 'high',
+      },
+      {
         title: "Health Checks",
         description: "Configure load balancer health checks for automatic failover",
         impact: 'high',
-      },
-      {
-        title: "Session Management",
-        description: "Implement sticky sessions or distributed session storage",
-        impact: 'medium',
-      },
-      {
-        title: "SSL Termination",
-        description: "Handle SSL at the load balancer level for better performance",
-        impact: 'high',
-      },
+      }
     ],
     industryOptimizations: [
       {
         industry: "E-commerce",
         recommendations: [
-          "Implement CDN for static content delivery",
-          "Use session affinity for shopping cart consistency",
+          "Implement session affinity for shopping carts",
+          "Use CDN for static assets",
         ],
-      },
-      {
-        industry: "Media",
-        recommendations: [
-          "Configure caching headers for static content",
-          "Implement rate limiting for API endpoints",
-        ],
-      },
+      }
     ],
     performanceCharacteristics: {
       latency: 40,
@@ -261,28 +267,36 @@ export const architectureTemplates: ArchitectureTemplate[] = [
       nodes: [
         {
           id: "lb_1",
-          type: "server",
-          resources: highPerformanceServerResources,
+          type: "lb",
+          resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 10000,
           isHealthy: true,
         },
         {
           id: "app_1",
-          type: "server",
+          type: "app",
           resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 2000,
           isHealthy: true,
         },
         {
           id: "app_2",
-          type: "server",
+          type: "app",
           resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 2000,
           isHealthy: true,
         },
+        {
+          id: "db_1",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 3000,
+          isHealthy: true,
+        }
       ],
       connections: [
         {
@@ -290,23 +304,39 @@ export const architectureTemplates: ArchitectureTemplate[] = [
           source: "lb_1",
           target: "app_1",
           bandwidth: 1000,
-          currentLoad: 0,
+          currentLoad: 0
         },
         {
           id: "conn_2",
           source: "lb_1",
           target: "app_2",
           bandwidth: 1000,
-          currentLoad: 0,
+          currentLoad: 0
         },
+        {
+          id: "conn_3",
+          source: "app_1",
+          target: "db_1",
+          bandwidth: 1000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_4",
+          source: "app_2",
+          target: "db_1",
+          bandwidth: 1000,
+          currentLoad: 0
+        }
       ],
       metrics: {
         totalThroughput: 0,
         systemHealth: 100,
         bottleneckNodes: [],
-        maxAchievableThroughput: 0,
-      },
-    },
+        maxAchievableThroughput: 4000,
+        latency: 40,
+        reliability: 99.95
+      }
+    }
   },
   // Intermediate Templates
   {
@@ -370,7 +400,7 @@ export const architectureTemplates: ArchitectureTemplate[] = [
       nodes: [
         {
           id: "gateway",
-          type: "server",
+          type: "lb",
           resources: highPerformanceServerResources,
           currentLoad: 0,
           maxThroughput: 0,
@@ -378,7 +408,7 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         },
         {
           id: "service_1",
-          type: "server",
+          type: "micro",
           resources: defaultServerResources,
           currentLoad: 0,
           maxThroughput: 0,
@@ -386,7 +416,7 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         },
         {
           id: "service_2",
-          type: "server",
+          type: "micro",
           resources: defaultServerResources,
           currentLoad: 0,
           maxThroughput: 0,
@@ -394,7 +424,7 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         },
         {
           id: "service_3",
-          type: "server",
+          type: "micro",
           resources: defaultServerResources,
           currentLoad: 0,
           maxThroughput: 0,
@@ -402,7 +432,7 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         },
         {
           id: "service_4",
-          type: "server",
+          type: "micro",
           resources: defaultServerResources,
           currentLoad: 0,
           maxThroughput: 0,
@@ -444,6 +474,8 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         systemHealth: 100,
         bottleneckNodes: [],
         maxAchievableThroughput: 0,
+        latency: 30,
+        reliability: 99.99
       },
     },
   },
@@ -506,42 +538,42 @@ export const architectureTemplates: ArchitectureTemplate[] = [
       nodes: [
         {
           id: "lb_1",
-          type: "server",
+          type: "lb",
           resources: highPerformanceServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 20000,
           isHealthy: true,
         },
         {
           id: "app_1",
-          type: "server",
+          type: "app",
           resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 5000,
           isHealthy: true,
         },
         {
           id: "app_2",
-          type: "server",
+          type: "app",
           resources: defaultServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 5000,
           isHealthy: true,
         },
         {
           id: "cache_1",
-          type: "server",
+          type: "cache",
           resources: cacheServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 10000,
           isHealthy: true,
         },
         {
           id: "cache_2",
-          type: "server",
+          type: "cache",
           resources: cacheServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 10000,
           isHealthy: true,
         },
       ],
@@ -550,14 +582,14 @@ export const architectureTemplates: ArchitectureTemplate[] = [
           id: "conn_1",
           source: "lb_1",
           target: "app_1",
-          bandwidth: 1000,
+          bandwidth: 2000,
           currentLoad: 0,
         },
         {
           id: "conn_2",
           source: "lb_1",
           target: "app_2",
-          bandwidth: 1000,
+          bandwidth: 2000,
           currentLoad: 0,
         },
         {
@@ -579,7 +611,9 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         totalThroughput: 0,
         systemHealth: 100,
         bottleneckNodes: [],
-        maxAchievableThroughput: 0,
+        maxAchievableThroughput: 10000,
+        latency: 35,
+        reliability: 99.95
       },
     },
   },
@@ -637,34 +671,34 @@ export const architectureTemplates: ArchitectureTemplate[] = [
       nodes: [
         {
           id: "api_gateway",
-          type: "server",
+          type: "lb",
           resources: securityServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 10000,
           isHealthy: true,
         },
         {
           id: "data_processor",
-          type: "server",
+          type: "app",
           resources: analyticsServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 8000,
           isHealthy: true,
         },
         {
           id: "storage_primary",
-          type: "server",
+          type: "db",
           resources: storageServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 5000,
           isHealthy: true,
         },
         {
           id: "storage_backup",
-          type: "server",
+          type: "db",
           resources: storageServerResources,
           currentLoad: 0,
-          maxThroughput: 0,
+          maxThroughput: 5000,
           isHealthy: true,
         },
       ],
@@ -695,7 +729,9 @@ export const architectureTemplates: ArchitectureTemplate[] = [
         totalThroughput: 0,
         systemHealth: 100,
         bottleneckNodes: [],
-        maxAchievableThroughput: 0,
+        maxAchievableThroughput: 5000,
+        latency: 45,
+        reliability: 99.99
       },
     },
   },
@@ -1572,4 +1608,531 @@ export const architectureTemplates: ArchitectureTemplate[] = [
       },
     },
   },
+  {
+    name: "Cached Application",
+    description: "A three-tier architecture with caching layer",
+    recommendedThroughput: 10000,
+    complexity: 'intermediate',
+    category: 'Web Applications',
+    costEstimate: {
+      monthly: 500,
+      hourly: 0.69,
+      breakdown: {
+        compute: 300,
+        storage: 100,
+        network: 50,
+        maintenance: 50,
+      },
+    },
+    bestPractices: [
+      {
+        title: "Cache Invalidation",
+        description: "Implement proper cache invalidation strategies",
+        impact: 'high',
+      },
+      {
+        title: "Cache Warming",
+        description: "Pre-warm cache for frequently accessed data",
+        impact: 'medium',
+      }
+    ],
+    industryOptimizations: [
+      {
+        industry: "Content",
+        recommendations: [
+          "Implement cache headers for static content",
+          "Use CDN for global content delivery",
+        ],
+      }
+    ],
+    performanceCharacteristics: {
+      latency: 30,
+      scalability: 'high',
+      reliability: 99.99,
+      maintenanceComplexity: 'medium',
+    },
+    initialState: {
+      nodes: [
+        {
+          id: "lb_1",
+          type: "lb",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 20000,
+          isHealthy: true,
+        },
+        {
+          id: "app_1",
+          type: "app",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 5000,
+          isHealthy: true,
+        },
+        {
+          id: "app_2",
+          type: "app",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 5000,
+          isHealthy: true,
+        },
+        {
+          id: "cache_1",
+          type: "cache",
+          resources: cacheServerResources,
+          currentLoad: 0,
+          maxThroughput: 10000,
+          isHealthy: true,
+        },
+        {
+          id: "cache_2",
+          type: "cache",
+          resources: cacheServerResources,
+          currentLoad: 0,
+          maxThroughput: 10000,
+          isHealthy: true,
+        },
+        {
+          id: "db_1",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 5000,
+          isHealthy: true,
+        }
+      ],
+      connections: [
+        {
+          id: "conn_1",
+          source: "lb_1",
+          target: "app_1",
+          bandwidth: 2000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_2",
+          source: "lb_1",
+          target: "app_2",
+          bandwidth: 2000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_3",
+          source: "app_1",
+          target: "cache_1",
+          bandwidth: 2000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_4",
+          source: "app_2",
+          target: "cache_2",
+          bandwidth: 2000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_5",
+          source: "cache_1",
+          target: "db_1",
+          bandwidth: 2000,
+          currentLoad: 0
+        }
+      ],
+      metrics: {
+        totalThroughput: 0,
+        systemHealth: 100,
+        bottleneckNodes: [],
+        maxAchievableThroughput: 10000,
+        latency: 30,
+        reliability: 99.95
+      }
+    }
+  },
+  {
+    name: "Microservices",
+    description: "A microservices architecture with message queue",
+    recommendedThroughput: 20000,
+    complexity: 'advanced',
+    category: 'Web Applications',
+    costEstimate: {
+      monthly: 1000,
+      hourly: 1.39,
+      breakdown: {
+        compute: 600,
+        storage: 200,
+        network: 100,
+        maintenance: 100,
+      },
+    },
+    bestPractices: [
+      {
+        title: "Service Discovery",
+        description: "Implement service discovery for dynamic scaling",
+        impact: 'high',
+      },
+      {
+        title: "Circuit Breaking",
+        description: "Add circuit breakers for fault tolerance",
+        impact: 'high',
+      }
+    ],
+    industryOptimizations: [
+      {
+        industry: "Enterprise",
+        recommendations: [
+          "Implement API gateway for service management",
+          "Use distributed tracing for monitoring",
+        ],
+      }
+    ],
+    performanceCharacteristics: {
+      latency: 20,
+      scalability: 'high',
+      reliability: 99.99,
+      maintenanceComplexity: 'high',
+    },
+    initialState: {
+      nodes: [
+        {
+          id: "lb_1",
+          type: "lb",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 40000,
+          isHealthy: true,
+        },
+        {
+          id: "micro_1",
+          type: "micro",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 5000,
+          isHealthy: true,
+        },
+        {
+          id: "micro_2",
+          type: "micro",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 5000,
+          isHealthy: true,
+        },
+        {
+          id: "mq_1",
+          type: "mq",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 20000,
+          isHealthy: true,
+        },
+        {
+          id: "cache_1",
+          type: "cache",
+          resources: cacheServerResources,
+          currentLoad: 0,
+          maxThroughput: 15000,
+          isHealthy: true,
+        },
+        {
+          id: "db_1",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 10000,
+          isHealthy: true,
+        }
+      ],
+      connections: [
+        {
+          id: "conn_1",
+          source: "lb_1",
+          target: "micro_1",
+          bandwidth: 4000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_2",
+          source: "lb_1",
+          target: "micro_2",
+          bandwidth: 4000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_3",
+          source: "micro_1",
+          target: "mq_1",
+          bandwidth: 4000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_4",
+          source: "micro_2",
+          target: "mq_1",
+          bandwidth: 4000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_5",
+          source: "mq_1",
+          target: "cache_1",
+          bandwidth: 4000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_6",
+          source: "cache_1",
+          target: "db_1",
+          bandwidth: 4000,
+          currentLoad: 0
+        }
+      ],
+      metrics: {
+        totalThroughput: 0,
+        systemHealth: 100,
+        bottleneckNodes: [],
+        maxAchievableThroughput: 10000,
+        latency: 20,
+        reliability: 99.99
+      }
+    }
+  },
+  {
+    name: "Enterprise Architecture",
+    description: "A fully redundant enterprise architecture with disaster recovery",
+    recommendedThroughput: 50000,
+    complexity: 'advanced',
+    category: 'Enterprise',
+    costEstimate: {
+      monthly: 2000,
+      hourly: 2.78,
+      breakdown: {
+        compute: 1200,
+        storage: 400,
+        network: 200,
+        maintenance: 200,
+      },
+    },
+    bestPractices: [
+      {
+        title: "Disaster Recovery",
+        description: "Implement cross-region disaster recovery",
+        impact: 'high',
+      },
+      {
+        title: "High Availability",
+        description: "Ensure all components have redundancy",
+        impact: 'high',
+      }
+    ],
+    industryOptimizations: [
+      {
+        industry: "Enterprise",
+        recommendations: [
+          "Implement multi-region deployment",
+          "Use global load balancing",
+        ],
+      }
+    ],
+    performanceCharacteristics: {
+      latency: 10,
+      scalability: 'high',
+      reliability: 99.999,
+      maintenanceComplexity: 'high',
+    },
+    initialState: {
+      nodes: [
+        {
+          id: "cdn_1",
+          type: "cdn",
+          resources: edgeServerResources,
+          currentLoad: 0,
+          maxThroughput: 100000,
+          isHealthy: true,
+        },
+        {
+          id: "lb_1",
+          type: "lb",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 80000,
+          isHealthy: true,
+        },
+        {
+          id: "lb_2",
+          type: "lb",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 80000,
+          isHealthy: true,
+        },
+        {
+          id: "micro_1",
+          type: "micro",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 10000,
+          isHealthy: true,
+        },
+        {
+          id: "micro_2",
+          type: "micro",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 10000,
+          isHealthy: true,
+        },
+        {
+          id: "mq_1",
+          type: "mq",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 40000,
+          isHealthy: true,
+        },
+        {
+          id: "mq_2",
+          type: "mq",
+          resources: defaultServerResources,
+          currentLoad: 0,
+          maxThroughput: 40000,
+          isHealthy: true,
+        },
+        {
+          id: "cache_1",
+          type: "cache",
+          resources: cacheServerResources,
+          currentLoad: 0,
+          maxThroughput: 30000,
+          isHealthy: true,
+        },
+        {
+          id: "cache_2",
+          type: "cache",
+          resources: cacheServerResources,
+          currentLoad: 0,
+          maxThroughput: 30000,
+          isHealthy: true,
+        },
+        {
+          id: "db_1",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 20000,
+          isHealthy: true,
+        },
+        {
+          id: "db_2",
+          type: "db",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 20000,
+          isHealthy: true,
+        },
+        {
+          id: "dr_1",
+          type: "dr",
+          resources: storageServerResources,
+          currentLoad: 0,
+          maxThroughput: 20000,
+          isHealthy: true,
+        }
+      ],
+      connections: [
+        {
+          id: "conn_1",
+          source: "cdn_1",
+          target: "lb_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_2",
+          source: "cdn_1",
+          target: "lb_2",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_3",
+          source: "lb_1",
+          target: "micro_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_4",
+          source: "lb_2",
+          target: "micro_2",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_5",
+          source: "micro_1",
+          target: "mq_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_6",
+          source: "micro_2",
+          target: "mq_2",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_7",
+          source: "mq_1",
+          target: "cache_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_8",
+          source: "mq_2",
+          target: "cache_2",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_9",
+          source: "cache_1",
+          target: "db_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_10",
+          source: "cache_2",
+          target: "db_2",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_11",
+          source: "db_1",
+          target: "dr_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        },
+        {
+          id: "conn_12",
+          source: "db_2",
+          target: "dr_1",
+          bandwidth: 8000,
+          currentLoad: 0
+        }
+      ],
+      metrics: {
+        totalThroughput: 0,
+        systemHealth: 100,
+        bottleneckNodes: [],
+        maxAchievableThroughput: 20000,
+        latency: 10,
+        reliability: 99.999
+      }
+    }
+  }
 ]; 

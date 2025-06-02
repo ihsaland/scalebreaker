@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import type { NodeType, ServerNode } from '../types/architecture';
 
 const LevelContainer = styled.div`
   position: absolute;
@@ -148,7 +149,7 @@ export interface Achievement {
 }
 
 export interface NodeRequirement {
-  type: string;
+  type: NodeType;
   minCount: number;
   description: string;
 }
@@ -447,13 +448,13 @@ export default function LevelManager({
       currentLatency <= achievement.requirements.maxLatency &&
       currentReliability >= achievement.requirements.minReliability &&
       achievement.requirements.pattern.every(pattern => 
-        nodePattern.some(node => node.includes(pattern))
+        nodePattern.includes(pattern)
       )
     );
   };
 
   const checkNodeRequirement = (requirement: NodeRequirement) => {
-    const count = nodePattern.filter(node => node.includes(requirement.type)).length;
+    const count = nodePattern.filter(type => type === requirement.type).length;
     return count >= requirement.minCount;
   };
 
@@ -495,7 +496,7 @@ export default function LevelManager({
             <NodeRequirement key={index} met={met}>
               <span>{req.description}</span>
               <NodeCount>
-                {nodePattern.filter(node => node.includes(req.type)).length}/{req.minCount}
+                {nodePattern.filter(type => type === req.type).length}/{req.minCount}
               </NodeCount>
             </NodeRequirement>
           );

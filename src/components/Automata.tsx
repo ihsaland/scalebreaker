@@ -96,15 +96,12 @@ const ControlPanel = styled.div`
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   z-index: 5;
-  width: 320px;
+  width: 300px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #f0f0f0;
   border: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 
   @media (max-width: 900px) {
     left: 0;
@@ -112,23 +109,28 @@ const ControlPanel = styled.div`
     width: 90vw;
     max-width: 95vw;
     top: 8px;
-    padding: 16px;
+    padding: 12px;
     position: static;
   }
   @media (max-width: 600px) {
     width: 98vw;
     max-width: 100vw;
-    padding: 12px;
+    padding: 4px;
     font-size: 13px;
     position: static;
   }
 `;
 
 const PanelSection = styled.div`
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
 `;
 
 const PanelTitle = styled.h3`
@@ -145,13 +147,6 @@ const PanelTitle = styled.h3`
   border-bottom: 2px solid #4a90e2;
 `;
 
-const ButtonGroup = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-`;
-
 const Button = styled.button`
   padding: 8px 16px;
   background: #4a90e2;
@@ -159,6 +154,7 @@ const Button = styled.button`
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  margin: 4px;
   font-weight: 500;
   transition: all 0.2s ease;
   min-width: 120px;
@@ -167,7 +163,6 @@ const Button = styled.button`
   justify-content: center;
   gap: 8px;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
-  flex: 1;
 
   &:hover {
     background: #357abd;
@@ -223,26 +218,17 @@ const Select = styled.select`
   }
 `;
 
-const Label = styled.label`
-  display: block;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
-  font-weight: 500;
-`;
-
 const TemplateDescription = styled.div`
   font-size: 12px;
   color: #666;
   margin: 8px 0;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
   max-height: 300px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #f0f0f0;
-  border: 1px solid rgba(0,0,0,0.05);
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -1939,145 +1925,166 @@ export default function Automata() {
 
               <PanelSection>
                 <PanelTitle>Node Management</PanelTitle>
-                <Label>Add New Node</Label>
-                <Select 
-                  value={selectedServerType}
-                  onChange={(e) => {
-                    const selectedType = serverTypes.find(t => t.name === e.target.value);
-                    if (selectedType) {
-                      addNewNode(selectedType);
-                    }
-                    setSelectedServerType(''); // Reset after selection
-                  }}
-                >
-                  <option value="">Select server type...</option>
-                  <optgroup label="Entry Points">
-                    {serverTypes.filter(t => ['lb', 'gateway'].includes(t.type)).map(type => (
-                      <option key={type.name} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Application Servers">
-                    {serverTypes.filter(t => ['app', 'micro'].includes(t.type)).map(type => (
-                      <option key={type.name} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Data & Storage">
-                    {serverTypes.filter(t => ['db', 'cache', 'mq'].includes(t.type)).map(type => (
-                      <option key={type.name} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Infrastructure">
-                    {serverTypes.filter(t => ['cdn', 'asg', 'dr'].includes(t.type)).map(type => (
-                      <option key={type.name} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                </Select>
-                
-                <ButtonGroup>
-                  <Button 
-                    onClick={createEntryPoint}
-                    disabled={!!entryPoint}
-                    style={{ 
-                      background: entryPoint ? '#f0f0f0' : '#4a90e2',
-                      color: entryPoint ? '#999' : 'white',
-                      cursor: entryPoint ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {entryPoint ? 'Entry Point Created' : 'Create Entry Point'}
-                  </Button>
-                  <Button 
-                    onClick={createDatabase}
-                    style={{ 
-                      background: '#2ecc71',
-                      color: 'white'
-                    }}
-                  >
-                    Add Database
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to clear the current design? This will remove all nodes and connections.')) {
-                        setNodes([]);
-                        setEdges([]);
-                        setNodeId(0);
-                        setEntryPoint(null);
-                        setSimulationResults(null);
-                        setFailurePoints([]);
-                        setSelectedNode(null);
-                        setShowConfig(false);
-                        setValidationErrors([]);
-                        setShowValidation(false);
-                        setCurrentLatency(0);
-                        setCurrentReliability(100);
-                        setUserNode(prev => ({
-                          ...prev,
-                          position: { x: 50, y: 50 }
-                        }));
-                      }
-                    }}
-                    style={{ 
-                      background: '#e74c3c',
-                      color: 'white'
-                    }}
-                  >
-                    Clear Design
-                  </Button>
-                </ButtonGroup>
-
-                {entryPoint && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px', 
+                  marginBottom: '16px' 
+                }}>
                   <div style={{ 
-                    marginTop: '12px',
-                    padding: '12px', 
-                    background: 'white', 
-                    borderRadius: '8px',
-                    border: '1px solid #4a90e2',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
+                    display: 'flex', 
+                    gap: '8px', 
+                    flexWrap: 'wrap' 
                   }}>
-                    <div>
-                      <strong>Entry Point:</strong> {entryPoint.id}
+                    <div style={{ width: '100%', marginBottom: '8px' }}>
+                      <Select 
+                        value={selectedServerType}
+                        onChange={(e) => {
+                          const selectedType = serverTypes.find(t => t.name === e.target.value);
+                          if (selectedType) {
+                            addNewNode(selectedType);
+                          }
+                          setSelectedServerType(''); // Reset after selection
+                        }}
+                        style={{ width: '100%', marginBottom: '8px' }}
+                      >
+                        <option value="">Select server type to add...</option>
+                        <optgroup label="Entry Points">
+                          {serverTypes.filter(t => ['lb', 'gateway'].includes(t.type)).map(type => (
+                            <option key={type.name} value={type.name}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Application Servers">
+                          {serverTypes.filter(t => ['app', 'micro'].includes(t.type)).map(type => (
+                            <option key={type.name} value={type.name}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Data & Storage">
+                          {serverTypes.filter(t => ['db', 'cache', 'mq'].includes(t.type)).map(type => (
+                            <option key={type.name} value={type.name}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Infrastructure">
+                          {serverTypes.filter(t => ['cdn', 'asg', 'dr'].includes(t.type)).map(type => (
+                            <option key={type.name} value={type.name}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </Select>
+                      <div style={{ 
+                        fontSize: '11px', 
+                        color: '#666', 
+                        marginTop: '4px',
+                        padding: '8px',
+                        background: '#f8f9fa',
+                        borderRadius: '4px'
+                      }}>
+                        {serverTypes[0].description}
+                      </div>
                     </div>
                     <Button 
-                      onClick={() => {
-                        setEntryPoint(null);
-                        setNodes(nodes => nodes.filter(n => n.id !== entryPoint.id));
-                        setEdges(edges => edges.filter(e => 
-                          e.source !== entryPoint.id && e.target !== entryPoint.id
-                        ));
-                      }}
+                      onClick={createEntryPoint}
+                      disabled={!!entryPoint}
                       style={{ 
-                        padding: '6px 12px', 
-                        fontSize: '12px',
-                        background: '#e74c3c',
-                        minWidth: 'auto'
+                        background: entryPoint ? '#f0f0f0' : '#4a90e2',
+                        color: entryPoint ? '#999' : 'white',
+                        cursor: entryPoint ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      Remove
+                      <span>{entryPoint ? 'Entry Point Created' : 'Create Entry Point'}</span>
+                    </Button>
+                    <Button 
+                      onClick={createDatabase}
+                      style={{ 
+                        background: '#2ecc71',
+                        color: 'white'
+                      }}
+                    >
+                      <span>Add Database</span>
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to clear the current design? This will remove all nodes and connections.')) {
+                          setNodes([]);
+                          setEdges([]);
+                          setNodeId(0);
+                          setEntryPoint(null);
+                          setSimulationResults(null);
+                          setFailurePoints([]);
+                          setSelectedNode(null);
+                          setShowConfig(false);
+                          setValidationErrors([]);
+                          setShowValidation(false);
+                          setCurrentLatency(0);
+                          setCurrentReliability(100);
+                          // Reset user node position
+                          setUserNode(prev => ({
+                            ...prev,
+                            position: { x: 50, y: 50 }
+                          }));
+                        }
+                      }}
+                      style={{ 
+                        background: '#e74c3c',
+                        color: 'white',
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      <span>Clear Design</span>
                     </Button>
                   </div>
-                )}
+                  {entryPoint && (
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#f8f9fa', 
+                      borderRadius: '8px',
+                      border: '1px solid #4a90e2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <strong>Entry Point:</strong> {entryPoint.id}
+                      </div>
+                      <Button 
+                        onClick={() => {
+                          setEntryPoint(null);
+                          setNodes(nodes => nodes.filter(n => n.id !== entryPoint.id));
+                          setEdges(edges => edges.filter(e => 
+                            e.source !== entryPoint.id && e.target !== entryPoint.id
+                          ));
+                        }}
+                        style={{ 
+                          padding: '6px 12px', 
+                          fontSize: '12px',
+                          background: '#e74c3c'
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </PanelSection>
 
               <PanelSection>
                 <PanelTitle>Simulation Settings</PanelTitle>
-                <Label>Target Throughput (ops/sec)</Label>
-                <Input
-                  type="number"
-                  value={targetThroughput}
-                  onChange={(e) => setTargetThroughput(Number(e.target.value))}
-                />
-                <ButtonGroup>
-                  <Button onClick={handleSimulation}>Run Simulation</Button>
-                </ButtonGroup>
+                <div>
+                  <label>Target Throughput (ops/sec):</label>
+                  <Input
+                    type="number"
+                    value={targetThroughput}
+                    onChange={(e) => setTargetThroughput(Number(e.target.value))}
+                  />
+                </div>
+                <Button onClick={handleSimulation}>Run Simulation</Button>
               </PanelSection>
 
               {selectedTemplateData && (
