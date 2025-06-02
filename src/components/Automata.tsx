@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import styled from '@emotion/styled';
 import ServerNode from './ServerNode';
 import { simulateArchitecture } from '../services/simulation';
-import type { ServerResources, ArchitectureState } from '../types/architecture';
+import type { ServerResources, ArchitectureState, NodeType } from '../types/architecture';
 import { architectureTemplates } from '../data/architectureTemplates';
 import TemplateComparison from './TemplateComparison';
 import ServerConfig from './ServerConfig';
@@ -96,12 +96,15 @@ const ControlPanel = styled.div`
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   z-index: 5;
-  width: 300px;
+  width: 320px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #f0f0f0;
   border: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 
   @media (max-width: 900px) {
     left: 0;
@@ -109,28 +112,23 @@ const ControlPanel = styled.div`
     width: 90vw;
     max-width: 95vw;
     top: 8px;
-    padding: 12px;
+    padding: 16px;
     position: static;
   }
   @media (max-width: 600px) {
     width: 98vw;
     max-width: 100vw;
-    padding: 4px;
+    padding: 12px;
     font-size: 13px;
     position: static;
   }
 `;
 
 const PanelSection = styled.div`
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #f0f0f0;
-
-  &:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-  }
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(0,0,0,0.05);
 `;
 
 const PanelTitle = styled.h3`
@@ -147,6 +145,13 @@ const PanelTitle = styled.h3`
   border-bottom: 2px solid #4a90e2;
 `;
 
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
 const Button = styled.button`
   padding: 8px 16px;
   background: #4a90e2;
@@ -154,7 +159,6 @@ const Button = styled.button`
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin: 4px;
   font-weight: 500;
   transition: all 0.2s ease;
   min-width: 120px;
@@ -163,6 +167,7 @@ const Button = styled.button`
   justify-content: center;
   gap: 8px;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+  flex: 1;
 
   &:hover {
     background: #357abd;
@@ -218,17 +223,26 @@ const Select = styled.select`
   }
 `;
 
+const Label = styled.label`
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+  font-weight: 500;
+`;
+
 const TemplateDescription = styled.div`
   font-size: 12px;
   color: #666;
   margin: 8px 0;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
   max-height: 300px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #f0f0f0;
+  border: 1px solid rgba(0,0,0,0.05);
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -708,13 +722,26 @@ const MetricValue = styled.div`
   color: #333;
 `;
 
-const calculateNodePattern = (nodes: Node[]) => {
+// Add validation helper function
+const isValidNodeType = (type: string): type is NodeType => {
+  const validTypes: NodeType[] = ['lb', 'app', 'db', 'cache', 'cdn', 'mq', 'micro', 'dr'];
+  return validTypes.includes(type as NodeType);
+};
+
+// Update calculateNodePattern with proper typing
+const calculateNodePattern = (nodes: Node[]): string[] => {
   return nodes.map(node => {
     // Skip user node
     if (node.id === 'user') return '';
     
     // Use the node's data.type property for accurate type identification
     const type = node.data.type;
+    
+    // Validate node type
+    if (!isValidNodeType(type)) {
+      console.warn(`Invalid node type "${type}" for node ${node.id}. Expected one of: lb, app, db, cache, cdn, mq, micro, dr, gateway, asg`);
+      return '';
+    }
     
     // Map the type to the required pattern format
     switch (type) {
@@ -738,7 +765,8 @@ const calculateNodePattern = (nodes: Node[]) => {
       case 'dr':
         return 'dr';
       default:
-        return type;
+        console.warn(`Unhandled node type "${type}" for node ${node.id}`);
+        return '';
     }
   }).filter(Boolean); // Remove empty strings
 };
@@ -917,7 +945,8 @@ export default function Automata() {
   const [nodeId, setNodeId] = useState(0);
   const [targetThroughput, setTargetThroughput] = useState(1000);
   const [simulationResults, setSimulationResults] = useState<ArchitectureState['metrics'] | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedServerType, setSelectedServerType] = useState('');
   const [view, setView] = useState<'design' | 'compare'>('design');
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
@@ -1107,6 +1136,12 @@ export default function Automata() {
 
   // Update the addNewNode function to include server type
   const addNewNode = useCallback((serverType = serverTypes[0]) => {
+    // Validate server type
+    if (!isValidNodeType(serverType.type)) {
+      console.error(`Invalid server type "${serverType.type}". Cannot add node.`);
+      return;
+    }
+
     const newNode: Node = {
       id: `node_${nodeId}`,
       type: 'server',
@@ -1206,13 +1241,20 @@ export default function Automata() {
   const applyTemplate = useCallback((templateName: string) => {
     const template = architectureTemplates.find(t => t.name === templateName);
     if (template) {
+      // Validate all node types in template
+      const invalidNodes = template.initialState.nodes.filter(node => !isValidNodeType(node.type));
+      if (invalidNodes.length > 0) {
+        console.error('Template contains invalid node types:', invalidNodes);
+        return;
+      }
+
       const newNodes = template.initialState.nodes.map(node => ({
         id: node.id,
         type: 'server',
         position: { x: Math.random() * 500, y: Math.random() * 500 },
         data: {
           id: node.id,
-          type: 'server',
+          type: node.type,
           resources: node.resources,
           currentLoad: node.currentLoad,
           maxThroughput: node.maxThroughput,
@@ -1857,9 +1899,12 @@ export default function Automata() {
             <ControlPanel>
               <PanelSection>
                 <PanelTitle>Architecture Templates</PanelTitle>
-                <Select
-                  value={selectedTemplate}
-                  onChange={(e) => applyTemplate(e.target.value)}
+                <Select 
+                  value={selectedTemplate} 
+                  onChange={(e) => {
+                    applyTemplate(e.target.value);
+                    setSelectedTemplate(''); // Reset after selection
+                  }}
                 >
                   <option value="">Select a template...</option>
                   
@@ -1894,134 +1939,145 @@ export default function Automata() {
 
               <PanelSection>
                 <PanelTitle>Node Management</PanelTitle>
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '12px', 
-                  marginBottom: '16px' 
-                }}>
+                <Label>Add New Node</Label>
+                <Select 
+                  value={selectedServerType}
+                  onChange={(e) => {
+                    const selectedType = serverTypes.find(t => t.name === e.target.value);
+                    if (selectedType) {
+                      addNewNode(selectedType);
+                    }
+                    setSelectedServerType(''); // Reset after selection
+                  }}
+                >
+                  <option value="">Select server type...</option>
+                  <optgroup label="Entry Points">
+                    {serverTypes.filter(t => ['lb', 'gateway'].includes(t.type)).map(type => (
+                      <option key={type.name} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Application Servers">
+                    {serverTypes.filter(t => ['app', 'micro'].includes(t.type)).map(type => (
+                      <option key={type.name} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Data & Storage">
+                    {serverTypes.filter(t => ['db', 'cache', 'mq'].includes(t.type)).map(type => (
+                      <option key={type.name} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Infrastructure">
+                    {serverTypes.filter(t => ['cdn', 'asg', 'dr'].includes(t.type)).map(type => (
+                      <option key={type.name} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                </Select>
+                
+                <ButtonGroup>
+                  <Button 
+                    onClick={createEntryPoint}
+                    disabled={!!entryPoint}
+                    style={{ 
+                      background: entryPoint ? '#f0f0f0' : '#4a90e2',
+                      color: entryPoint ? '#999' : 'white',
+                      cursor: entryPoint ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {entryPoint ? 'Entry Point Created' : 'Create Entry Point'}
+                  </Button>
+                  <Button 
+                    onClick={createDatabase}
+                    style={{ 
+                      background: '#2ecc71',
+                      color: 'white'
+                    }}
+                  >
+                    Add Database
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to clear the current design? This will remove all nodes and connections.')) {
+                        setNodes([]);
+                        setEdges([]);
+                        setNodeId(0);
+                        setEntryPoint(null);
+                        setSimulationResults(null);
+                        setFailurePoints([]);
+                        setSelectedNode(null);
+                        setShowConfig(false);
+                        setValidationErrors([]);
+                        setShowValidation(false);
+                        setCurrentLatency(0);
+                        setCurrentReliability(100);
+                        setUserNode(prev => ({
+                          ...prev,
+                          position: { x: 50, y: 50 }
+                        }));
+                      }
+                    }}
+                    style={{ 
+                      background: '#e74c3c',
+                      color: 'white'
+                    }}
+                  >
+                    Clear Design
+                  </Button>
+                </ButtonGroup>
+
+                {entryPoint && (
                   <div style={{ 
-                    display: 'flex', 
-                    gap: '8px', 
-                    flexWrap: 'wrap' 
+                    marginTop: '12px',
+                    padding: '12px', 
+                    background: 'white', 
+                    borderRadius: '8px',
+                    border: '1px solid #4a90e2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}>
-                    <div style={{ width: '100%', marginBottom: '8px' }}>
-                      <Select
-                        onChange={(e) => {
-                          const selectedType = serverTypes.find(t => t.name === e.target.value);
-                          if (selectedType) {
-                            addNewNode(selectedType);
-                          }
-                        }}
-                        style={{ width: '100%', marginBottom: '8px' }}
-                      >
-                        <option value="">Select server type to add...</option>
-                        <optgroup label="Entry Points">
-                          {serverTypes.filter(t => ['lb', 'gateway'].includes(t.type)).map(type => (
-                            <option key={type.name} value={type.name}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Application Servers">
-                          {serverTypes.filter(t => ['app', 'micro'].includes(t.type)).map(type => (
-                            <option key={type.name} value={type.name}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Data & Storage">
-                          {serverTypes.filter(t => ['db', 'cache', 'mq'].includes(t.type)).map(type => (
-                            <option key={type.name} value={type.name}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Infrastructure">
-                          {serverTypes.filter(t => ['cdn', 'asg', 'dr'].includes(t.type)).map(type => (
-                            <option key={type.name} value={type.name}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      </Select>
-                      <div style={{ 
-                        fontSize: '11px', 
-                        color: '#666', 
-                        marginTop: '4px',
-                        padding: '8px',
-                        background: '#f8f9fa',
-                        borderRadius: '4px'
-                      }}>
-                        {serverTypes[0].description}
-                      </div>
+                    <div>
+                      <strong>Entry Point:</strong> {entryPoint.id}
                     </div>
                     <Button 
-                      onClick={createEntryPoint}
-                      disabled={!!entryPoint}
+                      onClick={() => {
+                        setEntryPoint(null);
+                        setNodes(nodes => nodes.filter(n => n.id !== entryPoint.id));
+                        setEdges(edges => edges.filter(e => 
+                          e.source !== entryPoint.id && e.target !== entryPoint.id
+                        ));
+                      }}
                       style={{ 
-                        background: entryPoint ? '#f0f0f0' : '#4a90e2',
-                        color: entryPoint ? '#999' : 'white',
-                        cursor: entryPoint ? 'not-allowed' : 'pointer'
+                        padding: '6px 12px', 
+                        fontSize: '12px',
+                        background: '#e74c3c',
+                        minWidth: 'auto'
                       }}
                     >
-                      <span>{entryPoint ? 'Entry Point Created' : 'Create Entry Point'}</span>
-                    </Button>
-                    <Button 
-                      onClick={createDatabase}
-                      style={{ 
-                        background: '#2ecc71',
-                        color: 'white'
-                      }}
-                    >
-                      <span>Add Database</span>
+                      Remove
                     </Button>
                   </div>
-                  {entryPoint && (
-                    <div style={{ 
-                      padding: '12px', 
-                      background: '#f8f9fa', 
-                      borderRadius: '8px',
-                      border: '1px solid #4a90e2',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div>
-                        <strong>Entry Point:</strong> {entryPoint.id}
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          setEntryPoint(null);
-                          setNodes(nodes => nodes.filter(n => n.id !== entryPoint.id));
-                          setEdges(edges => edges.filter(e => 
-                            e.source !== entryPoint.id && e.target !== entryPoint.id
-                          ));
-                        }}
-                        style={{ 
-                          padding: '6px 12px', 
-                          fontSize: '12px',
-                          background: '#e74c3c'
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                )}
               </PanelSection>
 
               <PanelSection>
                 <PanelTitle>Simulation Settings</PanelTitle>
-                <div>
-                  <label>Target Throughput (ops/sec):</label>
-                  <Input
-                    type="number"
-                    value={targetThroughput}
-                    onChange={(e) => setTargetThroughput(Number(e.target.value))}
-                  />
-                </div>
-                <Button onClick={handleSimulation}>Run Simulation</Button>
+                <Label>Target Throughput (ops/sec)</Label>
+                <Input
+                  type="number"
+                  value={targetThroughput}
+                  onChange={(e) => setTargetThroughput(Number(e.target.value))}
+                />
+                <ButtonGroup>
+                  <Button onClick={handleSimulation}>Run Simulation</Button>
+                </ButtonGroup>
               </PanelSection>
 
               {selectedTemplateData && (
