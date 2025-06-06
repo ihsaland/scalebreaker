@@ -189,12 +189,17 @@ const Input = styled.input`
   font-size: 14px;
   transition: all 0.2s ease;
   background: #f8f9fa;
+  color: #333;
 
   &:focus {
     border-color: #4a90e2;
     outline: none;
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
     background: white;
+  }
+
+  &::placeholder {
+    color: #999;
   }
 `;
 
@@ -209,11 +214,17 @@ const Select = styled.select`
   background: #f8f9fa;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: #333;
 
   &:focus {
     border-color: #4a90e2;
     outline: none;
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    background: white;
+  }
+
+  option {
+    color: #333;
     background: white;
   }
 `;
@@ -280,6 +291,11 @@ const BestPracticeItem = styled.div<BestPracticeItemProps>`
   background: white;
   border-radius: 4px;
   border-left: 3px solid ${props => props.impact === 'high' ? '#e74c3c' : props.impact === 'medium' ? '#f1c40f' : '#2ecc71'};
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
 `;
 
 const IndustrySection = styled.div`
@@ -441,40 +457,6 @@ const FailurePoint = styled.div`
   }
 `;
 
-const Legend = styled.div`
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  z-index: 5;
-  min-width: 180px;
-  max-width: 240px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  border: 1px solid rgba(0,0,0,0.05);
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: #666;
-`;
-
-const LegendColor = styled.div<{ color: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: ${props => props.color};
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
-`;
-
 const ConfigPanel = styled.div`
   position: absolute;
   top: 50%;
@@ -552,7 +534,7 @@ const defaultResources: ServerResources = {
 const ValidationStatusDisplay = styled.div<{ isMinimized: boolean }>`
   position: fixed;
   top: 80px;
-  left: 20px;
+  right: 20px;
   z-index: 1000;
   background: white;
   padding: ${props => props.isMinimized ? '8px 16px' : '16px'};
@@ -563,7 +545,7 @@ const ValidationStatusDisplay = styled.div<{ isMinimized: boolean }>`
   border: 1px solid rgba(0,0,0,0.05);
   max-height: ${props => props.isMinimized ? 'auto' : 'calc(100vh - 200px)'};
   overflow-y: ${props => props.isMinimized ? 'hidden' : 'auto'};
-  margin-right: 16px;
+  margin-left: 16px;
   margin-bottom: 16px;
   transition: all 0.3s ease;
   transform: none;
@@ -652,6 +634,39 @@ const LevelCompleteModal = styled.div`
   text-align: center;
   min-width: 300px;
   border: 1px solid rgba(0,0,0,0.05);
+  color: #333;
+
+  h2 {
+    color: #333;
+    margin: 0 0 16px;
+    font-size: 24px;
+  }
+
+  h3 {
+    color: #333;
+    margin: 16px 0 8px;
+    font-size: 18px;
+  }
+
+  p {
+    color: #666;
+    margin: 8px 0;
+  }
+
+  ul {
+    color: #666;
+    text-align: left;
+    margin: 8px 0;
+  }
+
+  li {
+    margin: 8px 0;
+    color: #666;
+  }
+
+  strong {
+    color: #333;
+  }
 `;
 
 const Confetti = styled.div`
@@ -759,13 +774,45 @@ const calculateNodePattern = (nodes: Node[]): string[] => {
 
 const LevelManagerContainer = styled.div`
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 80px;
+  right: 20px;
   z-index: 100;
   width: 100%;
-  max-width: 600px;
+  max-width: 400px;
   padding: 0 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.05);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4a90e2 #f0f0f0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #4a90e2;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #357abd;
+  }
+
+  @media (max-width: 900px) {
+    position: static;
+    max-width: 100%;
+    margin: 16px;
+    padding: 16px;
+  }
 `;
 
 // Add interface at the top with other interfaces
@@ -1707,7 +1754,14 @@ export default function Automata() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [selectedEdge]);
 
-  // Modify the ReactFlow component
+  // Add useEffect to initialize user node
+  useEffect(() => {
+    if (!nodes.some(node => node.id === 'user')) {
+      setNodes(prevNodes => [userNode, ...prevNodes]);
+    }
+  }, []);
+
+  // Modify the ReactFlow component to not add userNode again
   return (
     <Container onContextMenu={handleContextMenu}>
       <ViewToggle>
@@ -1795,7 +1849,7 @@ export default function Automata() {
           )}
           <FlowContainer>
             <ReactFlow
-              nodes={[userNode, ...nodes].map(node => ({
+              nodes={nodes.map(node => ({
                 ...node,
                 data: {
                   ...node.data,
@@ -1860,24 +1914,6 @@ export default function Automata() {
                   </ConfigPanel>
                 </>
               )}
-              <Legend>
-                <LegendItem>
-                  <LegendColor color="#e74c3c" />
-                  <span>User Entry Point</span>
-                </LegendItem>
-                <LegendItem>
-                  <LegendColor color="#4a90e2" />
-                  <span>System Entry Point</span>
-                </LegendItem>
-                <LegendItem>
-                  <LegendColor color="#2ecc71" />
-                  <span>Database Node</span>
-                </LegendItem>
-                <LegendItem>
-                  <LegendColor color="#f1c40f" />
-                  <span>Potential Failure Point</span>
-                </LegendItem>
-              </Legend>
             </ReactFlow>
           </FlowContainer>
 
@@ -1928,15 +1964,14 @@ export default function Automata() {
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  gap: '12px', 
-                  marginBottom: '16px' 
+                  gap: '16px'
                 }}>
                   <div style={{ 
                     display: 'flex', 
-                    gap: '8px', 
-                    flexWrap: 'wrap' 
+                    flexDirection: 'column',
+                    gap: '8px'
                   }}>
-                    <div style={{ width: '100%', marginBottom: '8px' }}>
+                    <div style={{ width: '100%' }}>
                       <Select 
                         value={selectedServerType}
                         onChange={(e) => {
@@ -1946,7 +1981,7 @@ export default function Automata() {
                           }
                           setSelectedServerType(''); // Reset after selection
                         }}
-                        style={{ width: '100%', marginBottom: '8px' }}
+                        style={{ width: '100%' }}
                       >
                         <option value="">Select server type to add...</option>
                         <optgroup label="Entry Points">
@@ -1989,26 +2024,40 @@ export default function Automata() {
                         {serverTypes[0].description}
                       </div>
                     </div>
-                    <Button 
-                      onClick={createEntryPoint}
-                      disabled={!!entryPoint}
-                      style={{ 
-                        background: entryPoint ? '#f0f0f0' : '#4a90e2',
-                        color: entryPoint ? '#999' : 'white',
-                        cursor: entryPoint ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <span>{entryPoint ? 'Entry Point Created' : 'Create Entry Point'}</span>
-                    </Button>
-                    <Button 
-                      onClick={createDatabase}
-                      style={{ 
-                        background: '#2ecc71',
-                        color: 'white'
-                      }}
-                    >
-                      <span>Add Database</span>
-                    </Button>
+                  </div>
+
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px'
+                    }}>
+                      <Button 
+                        onClick={createEntryPoint}
+                        disabled={!!entryPoint}
+                        style={{ 
+                          flex: 1,
+                          background: entryPoint ? '#f0f0f0' : '#4a90e2',
+                          color: entryPoint ? '#999' : 'white',
+                          cursor: entryPoint ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <span>{entryPoint ? 'Entry Point Created' : 'Create Entry Point'}</span>
+                      </Button>
+                      <Button 
+                        onClick={createDatabase}
+                        style={{ 
+                          flex: 1,
+                          background: '#2ecc71',
+                          color: 'white'
+                        }}
+                      >
+                        <span>Add Database</span>
+                      </Button>
+                    </div>
                     <Button 
                       onClick={() => {
                         if (window.confirm('Are you sure you want to clear the current design? This will remove all nodes and connections.')) {
@@ -2032,14 +2081,15 @@ export default function Automata() {
                         }
                       }}
                       style={{ 
+                        width: '100%',
                         background: '#e74c3c',
-                        color: 'white',
-                        marginLeft: 'auto'
+                        color: 'white'
                       }}
                     >
                       <span>Clear Design</span>
                     </Button>
                   </div>
+
                   {entryPoint && (
                     <div style={{ 
                       padding: '12px', 
@@ -2077,7 +2127,7 @@ export default function Automata() {
               <PanelSection>
                 <PanelTitle>Simulation Settings</PanelTitle>
                 <div>
-                  <label>Target Throughput (ops/sec):</label>
+                  <label style={{ color: '#333', display: 'block', marginBottom: '4px' }}>Target Throughput (ops/sec):</label>
                   <Input
                     type="number"
                     value={targetThroughput}

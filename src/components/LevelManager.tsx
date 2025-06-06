@@ -253,46 +253,96 @@ export const levels: Level[] = [
   },
   {
     id: 3,
-    name: "Level 3: Cost Optimization",
-    description: "Optimize your architecture for better performance at lower costs",
+    name: "Level 3: High Availability",
+    description: "Design a highly available system that can handle failures gracefully",
     minThroughput: 10000,
-    maxCost: 3000,
-    rewards: ["Cost Optimization Badge", "300 Points"],
+    maxCost: 8000,
+    rewards: ["High Availability Badge", "300 Points"],
     achievements: [
       {
-        id: "l3-optimized",
-        name: "Cost Optimizer",
-        description: "Create a highly optimized architecture with CDN and efficient caching",
-        icon: "💰",
+        id: "l3-ha",
+        name: "Fault Tolerant",
+        description: "Implement a fault-tolerant architecture with multiple availability zones",
+        icon: "🛡️",
         requirements: {
-          minEfficiency: 4,
+          minEfficiency: 2.0,
           maxLatency: 30,
           minReliability: 99.9,
-          pattern: ["cdn", "lb", "cache", "app", "db"]
+          pattern: ["lb", "lb", "app", "app", "app", "cache", "cache", "db", "db"]
         },
         bonusPoints: 150
       }
     ],
     nodeRequirements: [
       {
-        type: "cdn",
-        minCount: 1,
-        description: "Content Delivery Network"
+        type: "lb",
+        minCount: 2,
+        description: "Load Balancers (active-active)"
       },
+      {
+        type: "app",
+        minCount: 4,
+        description: "Application Servers"
+      },
+      {
+        type: "cache",
+        minCount: 2,
+        description: "Cache Servers (replicated)"
+      },
+      {
+        type: "db",
+        minCount: 2,
+        description: "Databases (master-slave)"
+      }
+    ]
+  },
+  {
+    id: 4,
+    name: "Level 4: Microservices",
+    description: "Break down your application into microservices for better scalability",
+    minThroughput: 15000,
+    maxCost: 12000,
+    rewards: ["Microservices Badge", "400 Points"],
+    achievements: [
+      {
+        id: "l4-micro",
+        name: "Microservices Expert",
+        description: "Implement a microservices architecture with service discovery",
+        icon: "🔍",
+        requirements: {
+          minEfficiency: 2.5,
+          maxLatency: 25,
+          minReliability: 99.95,
+          pattern: ["lb", "gateway", "micro", "micro", "micro", "mq", "cache", "db"]
+        },
+        bonusPoints: 200
+      }
+    ],
+    nodeRequirements: [
       {
         type: "lb",
         minCount: 2,
         description: "Load Balancers"
       },
       {
-        type: "cache",
-        minCount: 2,
-        description: "Cache Layers (distributed)"
+        type: "gateway",
+        minCount: 1,
+        description: "API Gateway"
       },
       {
-        type: "app",
-        minCount: 4,
-        description: "Application Servers"
+        type: "micro",
+        minCount: 3,
+        description: "Microservices"
+      },
+      {
+        type: "mq",
+        minCount: 1,
+        description: "Message Queue"
+      },
+      {
+        type: "cache",
+        minCount: 2,
+        description: "Cache Servers"
       },
       {
         type: "db",
@@ -302,78 +352,323 @@ export const levels: Level[] = [
     ]
   },
   {
-    id: 4,
-    name: "Level 4: High Performance",
-    description: "Build a high-performance architecture with strict cost constraints",
+    id: 5,
+    name: "Level 5: Global Distribution",
+    description: "Distribute your application globally for better user experience",
     minThroughput: 20000,
-    maxCost: 2500,
-    rewards: ["Performance Badge", "400 Points"],
+    maxCost: 15000,
+    rewards: ["Global Distribution Badge", "500 Points"],
     achievements: [
       {
-        id: "l4-performance",
-        name: "Performance Guru",
-        description: "Implement a high-performance architecture with microservices and message queues",
-        icon: "🚀",
+        id: "l5-global",
+        name: "Global Architect",
+        description: "Implement a globally distributed architecture with CDN",
+        icon: "🌍",
         requirements: {
-          minEfficiency: 8,
+          minEfficiency: 3.0,
           maxLatency: 20,
           minReliability: 99.99,
-          pattern: ["cdn", "lb", "mq", "micro", "cache", "db"]
+          pattern: ["cdn", "cdn", "lb", "lb", "app", "app", "app", "cache", "cache", "db", "db"]
         },
-        bonusPoints: 200
+        bonusPoints: 250
       }
     ],
     nodeRequirements: [
       {
         type: "cdn",
         minCount: 2,
-        description: "CDN (global distribution)"
+        description: "CDN Edge Servers"
       },
       {
         type: "lb",
-        minCount: 3,
-        description: "Load Balancers (multi-region)"
+        minCount: 2,
+        description: "Load Balancers"
       },
       {
-        type: "mq",
-        minCount: 1,
-        description: "Message Queue"
-      },
-      {
-        type: "micro",
-        minCount: 3,
-        description: "Microservices"
+        type: "app",
+        minCount: 4,
+        description: "Application Servers"
       },
       {
         type: "cache",
-        minCount: 3,
-        description: "Cache Layers"
+        minCount: 2,
+        description: "Cache Servers"
       },
       {
         type: "db",
-        minCount: 3,
-        description: "Databases (sharded)"
+        minCount: 2,
+        description: "Databases"
       }
     ]
   },
   {
-    id: 5,
-    name: "Level 5: Enterprise Grade",
-    description: "Create an enterprise-grade architecture with maximum efficiency",
-    minThroughput: 50000,
-    maxCost: 2000,
-    rewards: ["Enterprise Badge", "500 Points"],
+    id: 6,
+    name: "Level 6: Real-time Processing",
+    description: "Add real-time processing capabilities to your architecture",
+    minThroughput: 25000,
+    maxCost: 18000,
+    rewards: ["Real-time Processing Badge", "600 Points"],
     achievements: [
       {
-        id: "l5-enterprise",
-        name: "Enterprise Architect",
-        description: "Build an enterprise-grade architecture with full redundancy and disaster recovery",
-        icon: "🏢",
+        id: "l6-realtime",
+        name: "Real-time Expert",
+        description: "Implement a real-time processing pipeline with message queues",
+        icon: "⚡",
         requirements: {
-          minEfficiency: 25,
+          minEfficiency: 3.5,
+          maxLatency: 15,
+          minReliability: 99.995,
+          pattern: ["cdn", "lb", "gateway", "app", "app", "mq", "mq", "cache", "cache", "db", "db"]
+        },
+        bonusPoints: 300
+      }
+    ],
+    nodeRequirements: [
+      {
+        type: "cdn",
+        minCount: 2,
+        description: "CDN Edge Servers"
+      },
+      {
+        type: "lb",
+        minCount: 2,
+        description: "Load Balancers"
+      },
+      {
+        type: "gateway",
+        minCount: 1,
+        description: "API Gateway"
+      },
+      {
+        type: "app",
+        minCount: 4,
+        description: "Application Servers"
+      },
+      {
+        type: "mq",
+        minCount: 2,
+        description: "Message Queues"
+      },
+      {
+        type: "cache",
+        minCount: 2,
+        description: "Cache Servers"
+      },
+      {
+        type: "db",
+        minCount: 2,
+        description: "Databases"
+      }
+    ]
+  },
+  {
+    id: 7,
+    name: "Level 7: Data Processing",
+    description: "Add data processing capabilities to handle large datasets",
+    minThroughput: 30000,
+    maxCost: 20000,
+    rewards: ["Data Processing Badge", "700 Points"],
+    achievements: [
+      {
+        id: "l7-data",
+        name: "Data Processing Expert",
+        description: "Implement a data processing pipeline with multiple databases",
+        icon: "📊",
+        requirements: {
+          minEfficiency: 4.0,
           maxLatency: 10,
           minReliability: 99.999,
-          pattern: ["cdn", "lb", "mq", "micro", "cache", "db", "dr"]
+          pattern: ["cdn", "lb", "gateway", "app", "app", "app", "mq", "mq", "cache", "cache", "db", "db", "db"]
+        },
+        bonusPoints: 350
+      }
+    ],
+    nodeRequirements: [
+      {
+        type: "cdn",
+        minCount: 2,
+        description: "CDN Edge Servers"
+      },
+      {
+        type: "lb",
+        minCount: 2,
+        description: "Load Balancers"
+      },
+      {
+        type: "gateway",
+        minCount: 1,
+        description: "API Gateway"
+      },
+      {
+        type: "app",
+        minCount: 5,
+        description: "Application Servers"
+      },
+      {
+        type: "mq",
+        minCount: 2,
+        description: "Message Queues"
+      },
+      {
+        type: "cache",
+        minCount: 2,
+        description: "Cache Servers"
+      },
+      {
+        type: "db",
+        minCount: 3,
+        description: "Databases"
+      }
+    ]
+  },
+  {
+    id: 8,
+    name: "Level 8: Disaster Recovery",
+    description: "Implement a comprehensive disaster recovery strategy",
+    minThroughput: 35000,
+    maxCost: 25000,
+    rewards: ["Disaster Recovery Badge", "800 Points"],
+    achievements: [
+      {
+        id: "l8-dr",
+        name: "Disaster Recovery Expert",
+        description: "Implement a multi-region disaster recovery setup",
+        icon: "🔄",
+        requirements: {
+          minEfficiency: 4.5,
+          maxLatency: 8,
+          minReliability: 99.9999,
+          pattern: ["cdn", "cdn", "lb", "lb", "gateway", "app", "app", "app", "mq", "mq", "cache", "cache", "db", "db", "dr"]
+        },
+        bonusPoints: 400
+      }
+    ],
+    nodeRequirements: [
+      {
+        type: "cdn",
+        minCount: 3,
+        description: "CDN Edge Servers"
+      },
+      {
+        type: "lb",
+        minCount: 3,
+        description: "Load Balancers"
+      },
+      {
+        type: "gateway",
+        minCount: 2,
+        description: "API Gateways"
+      },
+      {
+        type: "app",
+        minCount: 6,
+        description: "Application Servers"
+      },
+      {
+        type: "mq",
+        minCount: 2,
+        description: "Message Queues"
+      },
+      {
+        type: "cache",
+        minCount: 3,
+        description: "Cache Servers"
+      },
+      {
+        type: "db",
+        minCount: 3,
+        description: "Databases"
+      },
+      {
+        type: "dr",
+        minCount: 1,
+        description: "Disaster Recovery Server"
+      }
+    ]
+  },
+  {
+    id: 9,
+    name: "Level 9: Auto Scaling",
+    description: "Implement dynamic auto-scaling for optimal resource utilization",
+    minThroughput: 40000,
+    maxCost: 30000,
+    rewards: ["Auto Scaling Badge", "900 Points"],
+    achievements: [
+      {
+        id: "l9-autoscale",
+        name: "Auto Scaling Expert",
+        description: "Implement a fully automated scaling system",
+        icon: "📈",
+        requirements: {
+          minEfficiency: 5.0,
+          maxLatency: 5,
+          minReliability: 99.9999,
+          pattern: ["cdn", "cdn", "lb", "lb", "gateway", "asg", "asg", "mq", "mq", "cache", "cache", "db", "db", "dr"]
+        },
+        bonusPoints: 450
+      }
+    ],
+    nodeRequirements: [
+      {
+        type: "cdn",
+        minCount: 3,
+        description: "CDN Edge Servers"
+      },
+      {
+        type: "lb",
+        minCount: 3,
+        description: "Load Balancers"
+      },
+      {
+        type: "gateway",
+        minCount: 2,
+        description: "API Gateways"
+      },
+      {
+        type: "asg",
+        minCount: 2,
+        description: "Auto Scaling Groups"
+      },
+      {
+        type: "mq",
+        minCount: 2,
+        description: "Message Queues"
+      },
+      {
+        type: "cache",
+        minCount: 3,
+        description: "Cache Servers"
+      },
+      {
+        type: "db",
+        minCount: 3,
+        description: "Databases"
+      },
+      {
+        type: "dr",
+        minCount: 1,
+        description: "Disaster Recovery Server"
+      }
+    ]
+  },
+  {
+    id: 10,
+    name: "Level 10: Enterprise Scale",
+    description: "Design an enterprise-grade architecture that can handle massive scale",
+    minThroughput: 50000,
+    maxCost: 40000,
+    rewards: ["Enterprise Architect Badge", "1000 Points"],
+    achievements: [
+      {
+        id: "l10-enterprise",
+        name: "Enterprise Architect",
+        description: "Implement a complete enterprise-grade architecture",
+        icon: "🏢",
+        requirements: {
+          minEfficiency: 6.0,
+          maxLatency: 3,
+          minReliability: 99.99999,
+          pattern: ["cdn", "cdn", "cdn", "lb", "lb", "lb", "gateway", "gateway", "asg", "asg", "mq", "mq", "mq", "cache", "cache", "cache", "db", "db", "db", "dr"]
         },
         bonusPoints: 500
       }
@@ -381,38 +676,43 @@ export const levels: Level[] = [
     nodeRequirements: [
       {
         type: "cdn",
-        minCount: 3,
-        description: "CDN (global + regional)"
+        minCount: 4,
+        description: "CDN Edge Servers"
       },
       {
         type: "lb",
         minCount: 4,
-        description: "Load Balancers (multi-region + failover)"
+        description: "Load Balancers"
+      },
+      {
+        type: "gateway",
+        minCount: 3,
+        description: "API Gateways"
+      },
+      {
+        type: "asg",
+        minCount: 3,
+        description: "Auto Scaling Groups"
       },
       {
         type: "mq",
-        minCount: 2,
-        description: "Message Queues (redundant)"
-      },
-      {
-        type: "micro",
-        minCount: 5,
-        description: "Microservices (distributed)"
+        minCount: 3,
+        description: "Message Queues"
       },
       {
         type: "cache",
         minCount: 4,
-        description: "Cache Layers (distributed)"
+        description: "Cache Servers"
       },
       {
         type: "db",
         minCount: 4,
-        description: "Databases (sharded + replicated)"
+        description: "Databases"
       },
       {
         type: "dr",
-        minCount: 1,
-        description: "Disaster Recovery"
+        minCount: 2,
+        description: "Disaster Recovery Servers"
       }
     ]
   }
