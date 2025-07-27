@@ -1207,38 +1207,7 @@ export default function Automata() {
     setNodeId((prev) => prev + 1);
   }, [nodeId, setNodes, setEdges]);
 
-  // Add method to create entry point
-  const createEntryPoint = useCallback(() => {
-    const newEntryPoint: Node = {
-      id: `entry_${nodeId}`,
-      type: 'server',
-      position: { x: 150, y: 50 }, // Position it to the right of the user node
-      data: {
-        id: `entry_${nodeId}`,
-        type: 'entry',
-        resources: { ...defaultResources },
-        currentLoad: 0,
-        maxThroughput: 0,
-        isHealthy: true,
-        isEntryPoint: true
-      },
-    };
-    
-    setEntryPoint(newEntryPoint);
-    setNodes((nds) => [...nds, newEntryPoint]);
-    
-    // Connect user node to entry point
-    const newEdge = {
-      id: `edge_user_entry_${nodeId}`,
-      source: 'user',
-      target: `entry_${nodeId}`,
-      bandwidth: 1000,
-      currentLoad: 0,
-    };
-    setEdges((eds) => [...eds, newEdge]);
-    
-    setNodeId((prev) => prev + 1);
-  }, [nodeId, setNodes, setEdges]);
+
 
   // Add database node creation method
   const createDatabase = useCallback(() => {
@@ -1321,17 +1290,17 @@ export default function Automata() {
     }
   }, [setNodes, setEdges]);
 
-  // Modify the runSimulation function to use entry point
+  // Modify the runSimulation function to remove entry point requirement
   const runSimulation = useCallback(() => {
-    if (!entryPoint) {
-      alert('Please create an entry point before running the simulation');
+    if (nodes.length === 0) {
+      alert('Please add some nodes before running the simulation');
       return;
     }
 
     const state: ArchitectureState = {
       nodes: nodes.map(node => ({
         ...node.data,
-        isStartingPoint: node.id === entryPoint.id
+        isStartingPoint: false // Remove entry point logic
       })),
       connections: edges.map(edge => ({
         id: edge.id,
@@ -1357,10 +1326,27 @@ export default function Automata() {
     setCurrentLatency(results.metrics.latency);
     setCurrentReliability(results.metrics.reliability);
     
+    // Update the React Flow nodes with the new load values
+    setNodes(prevNodes => prevNodes.map(node => {
+      const updatedNode = results.nodes.find(n => n.id === node.id);
+      if (updatedNode) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            currentLoad: updatedNode.currentLoad,
+            maxThroughput: updatedNode.maxThroughput,
+            isHealthy: updatedNode.isHealthy
+          }
+        };
+      }
+      return node;
+    }));
+    
     if (results.metrics.bottleneckNodes.length > 0) {
       setFailurePoints(results.metrics.bottleneckNodes);
     }
-  }, [nodes, edges, targetThroughput, entryPoint]);
+  }, [nodes, edges, targetThroughput, setNodes]);
 
   const selectedTemplateData = useMemo(() => 
     architectureTemplates.find(t => t.name === selectedTemplate),
@@ -2036,18 +2022,6 @@ export default function Automata() {
                       gap: '8px'
                     }}>
                       <Button 
-                        onClick={createEntryPoint}
-                        disabled={!!entryPoint}
-                        style={{ 
-                          flex: 1,
-                          background: entryPoint ? '#f0f0f0' : '#4a90e2',
-                          color: entryPoint ? '#999' : 'white',
-                          cursor: entryPoint ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        <span>{entryPoint ? 'Entry Point Created' : 'Create Entry Point'}</span>
-                      </Button>
-                      <Button 
                         onClick={createDatabase}
                         style={{ 
                           flex: 1,
@@ -2064,7 +2038,6 @@ export default function Automata() {
                           setNodes([]);
                           setEdges([]);
                           setNodeId(0);
-                          setEntryPoint(null);
                           setSimulationResults(null);
                           setFailurePoints([]);
                           setSelectedNode(null);
@@ -2090,37 +2063,7 @@ export default function Automata() {
                     </Button>
                   </div>
 
-                  {entryPoint && (
-                    <div style={{ 
-                      padding: '12px', 
-                      background: '#f8f9fa', 
-                      borderRadius: '8px',
-                      border: '1px solid #4a90e2',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div>
-                        <strong>Entry Point:</strong> {entryPoint.id}
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          setEntryPoint(null);
-                          setNodes(nodes => nodes.filter(n => n.id !== entryPoint.id));
-                          setEdges(edges => edges.filter(e => 
-                            e.source !== entryPoint.id && e.target !== entryPoint.id
-                          ));
-                        }}
-                        style={{ 
-                          padding: '6px 12px', 
-                          fontSize: '12px',
-                          background: '#e74c3c'
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
+
                 </div>
               </PanelSection>
 
