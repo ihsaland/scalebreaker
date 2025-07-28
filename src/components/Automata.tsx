@@ -732,8 +732,7 @@ const isValidNodeType = (type: string): type is NodeType => {
 // Update calculateNodePattern with proper typing
 const calculateNodePattern = (nodes: Node[]): string[] => {
   return nodes.map(node => {
-    // Skip user node
-    if (node.id === 'user') return '';
+
     
     // Use the node's data.type property for accurate type identification
     const type = node.data.type;
@@ -822,8 +821,7 @@ interface SavedState {
   nodes: Node[];
   edges: Edge[];
   nodeId: number;
-  entryPoint: Node | null;
-  userNode: Node;
+
   selectedTemplate: string;
   targetThroughput: number;
   simulationResults: ArchitectureState['metrics'] | null;
@@ -1001,24 +999,10 @@ export default function Automata() {
   const [edgePopupPosition, setEdgePopupPosition] = useState({ x: 0, y: 0 });
   const [isValidationMinimized, setIsValidationMinimized] = useState(true);
 
-  // Add new state for user node
-  const [userNode, setUserNode] = useState<Node>({
-    id: 'user',
-    type: 'server',
-    position: { x: 50, y: 50 },
-    data: {
-      id: 'user',
-      type: 'user',
-      resources: { ...defaultResources },
-      currentLoad: 0,
-      maxThroughput: 0,
-      isHealthy: true,
-      isUser: true
-    },
-  });
+
 
   // Add new state for entry point
-  const [entryPoint, setEntryPoint] = useState<Node | null>(null);
+
 
   // Add new state for tracking if game has been initialized
   const [isInitialized, setIsInitialized] = useState(false);
@@ -1031,8 +1015,8 @@ export default function Automata() {
       nodes,
       edges,
       nodeId,
-      entryPoint,
-      userNode,
+
+
       selectedTemplate,
       targetThroughput,
       simulationResults,
@@ -1053,8 +1037,8 @@ export default function Automata() {
     nodes,
     edges,
     nodeId,
-    entryPoint,
-    userNode,
+
+
     selectedTemplate,
     targetThroughput,
     simulationResults,
@@ -1078,8 +1062,8 @@ export default function Automata() {
       setNodes(state.nodes);
       setEdges(state.edges);
       setNodeId(state.nodeId);
-      setEntryPoint(state.entryPoint);
-      setUserNode(state.userNode);
+
+
       setSelectedTemplate(state.selectedTemplate || '');
       setTargetThroughput(state.targetThroughput || 1000);
       setSimulationResults(state.simulationResults || null);
@@ -1113,26 +1097,13 @@ export default function Automata() {
       setShowValidation(false);
       setCurrentLatency(0);
       setCurrentReliability(100);
-      setEntryPoint(null);
+
       setSelectedTemplate('');
       setTargetThroughput(1000);
       setView('design');
       setSelectedTemplates([]);
       setHighlightedNodes([]);
-      setUserNode({
-        id: 'user',
-        type: 'server',
-        position: { x: 50, y: 50 },
-        data: {
-          id: 'user',
-          type: 'user',
-          resources: { ...defaultResources },
-          currentLoad: 0,
-          maxThroughput: 0,
-          isHealthy: true,
-          isUser: true
-        },
-      });
+
       setShowLevelManager(true);
       setShowControlPanel(true);
       setShowMetricsPanel(true);
@@ -1194,15 +1165,7 @@ export default function Automata() {
     };
     setNodes((nds) => [...nds, newNode]);
     
-    // Add connection from user node to new node
-    const newEdge = {
-      id: `edge_user_${nodeId}`,
-      source: 'user',
-      target: `node_${nodeId}`,
-      bandwidth: 1000,
-      currentLoad: 0,
-    };
-    setEdges((eds) => [...eds, newEdge]);
+
     
     setNodeId((prev) => prev + 1);
   }, [nodeId, setNodes, setEdges]);
@@ -1268,14 +1231,14 @@ export default function Automata() {
       setTargetThroughput(template.recommendedThroughput);
       setSelectedTemplate(templateName);
 
-      // Set starting point (usually the entry point of the architecture)
-      const entryPoint = newNodes.find(node => 
+      // Highlight potential entry points for better visibility
+      const entryPoints = newNodes.filter(node => 
         node.id.includes('gateway') || 
         node.id.includes('lb') || 
         node.id.includes('ingest')
       );
-      if (entryPoint) {
-        setHighlightedNodes([entryPoint.id]);
+      if (entryPoints.length > 0) {
+        setHighlightedNodes(entryPoints.map(node => node.id));
       }
 
       // Identify potential failure points (usually high-load or critical nodes)
@@ -1414,13 +1377,9 @@ export default function Automata() {
     setShowValidation(false);
     setCurrentLatency(0);
     setCurrentReliability(100);
-    setEntryPoint(null);
+
     
-    // Reset user node position
-    setUserNode(prev => ({
-      ...prev,
-      position: { x: 50, y: 50 }
-    }));
+
     
     // Show LevelManager for the new level
     setShowLevelManager(true);
@@ -1444,10 +1403,11 @@ export default function Automata() {
     const warnings: string[] = [];
     let isValid = true;
 
-    // Check for entry point
-    if (!entryPoint) {
-      errors.push('No entry point defined');
+    // Basic architecture validation
+    if (nodes.length === 0) {
+      errors.push('Architecture must contain at least one node');
       isValid = false;
+      return { isValid, errors, warnings };
     }
 
     // Check for isolated nodes
@@ -1465,57 +1425,99 @@ export default function Automata() {
       outgoingConnections.set(edge.source, (outgoingConnections.get(edge.source) || 0) + 1);
     });
 
-    // Production Architecture Requirements
-    const hasLoadBalancer = nodes.some(node => node.data.type === 'lb');
-    const hasDatabase = nodes.some(node => node.data.type === 'db');
-    const hasCache = nodes.some(node => node.data.type === 'cache');
-    const hasMultipleAppServers = nodes.filter(node => 
+    // Architecture pattern analysis
+    const nodeTypes = nodes.map(node => node.data.type);
+    const hasLoadBalancer = nodeTypes.includes('lb');
+    const hasGateway = nodeTypes.includes('gateway');
+    const hasDatabase = nodeTypes.includes('db');
+    const hasCache = nodeTypes.includes('cache');
+    const hasMessageQueue = nodeTypes.includes('mq');
+    const hasCDN = nodeTypes.includes('cdn');
+    const appServers = nodes.filter(node => 
       node.data.type === 'app' || node.data.type === 'micro'
-    ).length > 1;
+    );
+    const hasMultipleAppServers = appServers.length > 1;
 
-    // Validate entry point connections
-    if (entryPoint) {
-      const entryPointIncoming = incomingConnections.get(entryPoint.id) || 0;
-      const entryPointOutgoing = outgoingConnections.get(entryPoint.id) || 0;
-
-      // Entry point must have incoming connection from user
-      const hasUserConnection = edges.some(edge => 
-        edge.source === 'user' && edge.target === entryPoint.id
-      );
-      if (!hasUserConnection) {
-        errors.push('Entry point must have an incoming connection from the user');
-        isValid = false;
-      }
-
-      // Entry point must have outgoing connections
-      if (entryPointOutgoing === 0) {
-        errors.push('Entry point must have outgoing connections');
-        isValid = false;
-      }
+    // Entry point validation (entry point is now optional)
+    const entryPoints = nodes.filter(node => 
+      node.data.type === 'lb' || node.data.type === 'gateway'
+    );
+    
+    if (entryPoints.length === 0) {
+      warnings.push('Consider adding a load balancer or API gateway as an entry point');
+    } else if (entryPoints.length > 1) {
+      warnings.push('Multiple entry points detected - ensure proper traffic routing');
     }
 
-    // Production Requirements Validation
-    if (!hasLoadBalancer) {
-      errors.push('Production architecture must include a load balancer for high availability');
-      isValid = false;
+    // Architecture complexity validation
+    const totalNodes = nodes.length;
+    if (totalNodes < 2) {
+      warnings.push('Simple architecture - consider adding more components for scalability');
+    } else if (totalNodes > 15) {
+      warnings.push('Complex architecture - ensure proper monitoring and management');
     }
 
+    // Industry Standard Validation - Performance & Scalability
     if (!hasDatabase) {
-      errors.push('Production architecture must include a database for data persistence');
+      errors.push('Architecture must include a database for data persistence');
       isValid = false;
     }
 
-    if (!hasCache) {
-      warnings.push('Consider adding a cache layer for improved performance');
+    // Industry standard: Data layer validation
+    const hasDataLayer = hasDatabase || hasCache || hasMessageQueue;
+    if (!hasDataLayer) {
+      errors.push('Architecture must include a data layer (database, cache, or message queue)');
+      isValid = false;
     }
 
-    if (!hasMultipleAppServers) {
-      warnings.push('Consider adding multiple application servers for redundancy');
+    // High Availability Standards
+    if (appServers.length === 1 && totalNodes > 2) {
+      errors.push('Production architectures require multiple application servers for high availability');
+      isValid = false;
+    }
+
+    if (hasDatabase && nodes.filter(n => n.data.type === 'db').length === 1 && totalNodes > 3) {
+      errors.push('Production databases require replication for high availability');
+      isValid = false;
+    }
+
+    // Performance Optimization Standards
+    if (appServers.length > 1 && !hasLoadBalancer) {
+      errors.push('Multiple application servers require a load balancer for traffic distribution');
+      isValid = false;
+    }
+
+    if (appServers.length > 2 && !hasCache) {
+      warnings.push('Consider adding a cache layer to reduce database load and improve performance');
+    }
+
+    // Scalability Standards
+    if (totalNodes > 5 && !hasMessageQueue) {
+      warnings.push('Consider adding a message queue for asynchronous processing and decoupling');
+    }
+
+    if (appServers.length > 3 && !hasCDN) {
+      warnings.push('Consider adding a CDN for global content delivery and reduced latency');
+    }
+
+    // Security Standards
+    if (hasDatabase && !hasCache && appServers.length > 1) {
+      warnings.push('Consider adding a cache layer to reduce database exposure and improve security');
+    }
+
+    // Microservices Standards
+    if (nodes.filter(n => n.data.type === 'micro').length > 2 && !hasGateway) {
+      warnings.push('Microservices architectures should include an API gateway for service discovery and routing');
+    }
+
+    // Data Processing Standards
+    if (totalNodes > 8 && !hasMessageQueue) {
+      warnings.push('Large architectures benefit from message queues for event-driven processing');
     }
 
     // Validate each node based on its type
     nodes.forEach(node => {
-      if (!connectedNodes.has(node.id) && node.id !== 'user') {
+      if (!connectedNodes.has(node.id)) {
         const nodeName = node.data.serverType || node.data.type;
         errors.push(`Node "${nodeName}" is isolated`);
         isValid = false;
@@ -1529,116 +1531,144 @@ export default function Automata() {
       switch (nodeType) {
         case 'lb':
         case 'gateway':
-          // Load balancer must have incoming connection from user or entry point
-          const hasValidIncoming = edges.some(edge => 
-            (edge.source === 'user' || edge.source === entryPoint?.id) && 
-            edge.target === node.id
-          );
-          if (!hasValidIncoming) {
-            errors.push(`Load Balancer/Gateway "${node.data.serverType}" must have incoming connection from user or entry point`);
-            isValid = false;
-          }
           if (outgoing === 0) {
-            errors.push(`Load Balancer/Gateway "${node.data.serverType}" must have outgoing connections`);
+            errors.push(`Load Balancer/Gateway "${node.data.serverType || node.id}" must have outgoing connections`);
             isValid = false;
           }
-          // Load balancer should connect to multiple app servers
+          // Industry standard: Load balancer should connect to multiple app servers
           const lbOutgoingToApps = edges.filter(edge => 
             edge.source === node.id && 
             nodes.some(n => n.id === edge.target && (n.data.type === 'app' || n.data.type === 'micro'))
           ).length;
-          if (lbOutgoingToApps < 2) {
-            warnings.push(`Load Balancer "${node.data.serverType}" should connect to multiple application servers for redundancy`);
+          if (lbOutgoingToApps < 2 && appServers.length > 1) {
+            errors.push(`Load Balancer "${node.data.serverType || node.id}" must connect to multiple application servers for high availability`);
+            isValid = false;
+          }
+          // Industry standard: Load balancer should have health checks
+          if (lbOutgoingToApps > 0) {
+            warnings.push(`Load Balancer "${node.data.serverType || node.id}" should implement health checks for backend services`);
           }
           break;
 
         case 'app':
         case 'micro':
           if (incoming === 0) {
-            errors.push(`Application/Microservice "${node.data.serverType}" must have incoming connections`);
+            errors.push(`Application/Microservice "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
-          // App servers should connect to both cache and database
+          // Industry standard: App servers should connect to database through proper layers
+          const hasDirectDbConnection = edges.some(edge => 
+            edge.source === node.id && 
+            nodes.some(n => n.id === edge.target && n.data.type === 'db')
+          );
+          const hasIndirectDbConnection = edges.some(edge => 
+            edge.source === node.id && 
+            nodes.some(n => n.id === edge.target && (n.data.type === 'cache' || n.data.type === 'mq'))
+          );
+          
+          if (!hasDirectDbConnection && !hasIndirectDbConnection) {
+            warnings.push(`Application "${node.data.serverType || node.id}" should connect to data layer (database, cache, or message queue)`);
+          }
+          
+          // Industry standard: Direct DB connections should be avoided in production
+          if (hasDirectDbConnection && totalNodes > 3) {
+            warnings.push(`Application "${node.data.serverType || node.id}" should use connection pooling or database proxy for production`);
+          }
+          // Industry standard: Check for cache connection
           const hasCacheConnection = edges.some(edge => 
             edge.source === node.id && 
             nodes.some(n => n.id === edge.target && n.data.type === 'cache')
           );
-          const hasDbConnection = edges.some(edge => 
-            edge.source === node.id && 
-            nodes.some(n => n.id === edge.target && n.data.type === 'db')
-          );
-          if (!hasCacheConnection) {
-            warnings.push(`Application "${node.data.serverType}" should connect to a cache for better performance`);
+          if (!hasCacheConnection && hasCache) {
+            warnings.push(`Application "${node.data.serverType || node.id}" should connect to a cache for better performance`);
           }
-          if (!hasDbConnection) {
-            errors.push(`Application "${node.data.serverType}" must connect to a database`);
-            isValid = false;
+          // Industry standard: Microservices should have circuit breakers
+          if (node.data.type === 'micro' && outgoing > 2) {
+            warnings.push(`Microservice "${node.data.serverType || node.id}" should implement circuit breakers for external dependencies`);
           }
           break;
 
         case 'db':
           if (incoming === 0) {
-            errors.push(`Database "${node.data.serverType}" must have incoming connections`);
+            errors.push(`Database "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
           if (outgoing > 0) {
-            errors.push(`Database "${node.data.serverType}" should not have outgoing connections`);
+            warnings.push(`Database "${node.data.serverType || node.id}" typically should not have outgoing connections`);
+          }
+          // Industry standard: Database redundancy for production
+          const dbCount = nodes.filter(n => n.data.type === 'db').length;
+          if (dbCount < 2 && totalNodes > 3) {
+            errors.push(`Database "${node.data.serverType || node.id}" requires replication for production high availability`);
             isValid = false;
           }
-          // Check for database redundancy
-          const dbCount = nodes.filter(n => n.data.type === 'db').length;
-          if (dbCount < 2) {
-            warnings.push('Consider adding database replication for high availability');
+          // Industry standard: Database backup strategy
+          if (dbCount === 1) {
+            warnings.push(`Database "${node.data.serverType || node.id}" should have automated backup and recovery procedures`);
           }
           break;
 
         case 'cache':
           if (incoming === 0) {
-            errors.push(`Cache "${node.data.serverType}" must have incoming connections`);
+            errors.push(`Cache "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
           if (outgoing > 0) {
-            warnings.push(`Cache "${node.data.serverType}" typically should not have outgoing connections`);
+            warnings.push(`Cache "${node.data.serverType || node.id}" typically should not have outgoing connections`);
           }
-          // Check for cache redundancy
+          // Industry standard: Cache redundancy for production
           const cacheCount = nodes.filter(n => n.data.type === 'cache').length;
-          if (cacheCount < 2) {
-            warnings.push('Consider adding cache replication for high availability');
+          if (cacheCount < 2 && totalNodes > 5) {
+            warnings.push(`Cache "${node.data.serverType || node.id}" should have replication for high availability`);
+          }
+          // Industry standard: Cache eviction strategy
+          if (cacheCount > 0) {
+            warnings.push(`Cache "${node.data.serverType || node.id}" should implement proper eviction policies`);
           }
           break;
 
         case 'mq':
           if (incoming === 0) {
-            errors.push(`Message Queue "${node.data.serverType}" must have incoming connections`);
+            errors.push(`Message Queue "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
           if (outgoing === 0) {
-            warnings.push(`Message Queue "${node.data.serverType}" typically should have outgoing connections`);
+            warnings.push(`Message Queue "${node.data.serverType || node.id}" typically should have outgoing connections`);
           }
-          // Check for message queue redundancy
+          // Industry standard: Message queue redundancy for production
           const mqCount = nodes.filter(n => n.data.type === 'mq').length;
-          if (mqCount < 2) {
-            warnings.push('Consider adding message queue replication for high availability');
+          if (mqCount < 2 && totalNodes > 5) {
+            warnings.push(`Message Queue "${node.data.serverType || node.id}" should have replication for high availability`);
+          }
+          // Industry standard: Message queue monitoring
+          if (mqCount > 0) {
+            warnings.push(`Message Queue "${node.data.serverType || node.id}" should implement dead letter queues and monitoring`);
           }
           break;
 
         case 'cdn':
           if (incoming === 0) {
-            errors.push(`CDN "${node.data.serverType}" must have incoming connections`);
+            errors.push(`CDN "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
           if (outgoing === 0) {
-            warnings.push(`CDN "${node.data.serverType}" typically should have outgoing connections`);
+            warnings.push(`CDN "${node.data.serverType || node.id}" typically should have outgoing connections`);
           }
           break;
 
         case 'asg':
           if (incoming === 0) {
-            errors.push(`Auto Scaling Group "${node.data.serverType}" must have incoming connections`);
+            errors.push(`Auto Scaling Group "${node.data.serverType || node.id}" must have incoming connections`);
             isValid = false;
           }
           if (outgoing === 0) {
-            warnings.push(`Auto Scaling Group "${node.data.serverType}" typically should have outgoing connections`);
+            warnings.push(`Auto Scaling Group "${node.data.serverType || node.id}" typically should have outgoing connections`);
+          }
+          break;
+
+        case 'dr':
+          if (incoming === 0) {
+            warnings.push(`Disaster Recovery "${node.data.serverType || node.id}" should have incoming connections for data replication`);
           }
           break;
       }
@@ -1666,12 +1696,73 @@ export default function Automata() {
       return false;
     };
 
-    if (entryPoint && hasCycle(entryPoint.id)) {
-      warnings.push('Architecture contains cycles');
+    // Check for cycles starting from any node
+    let hasCycles = false;
+    for (const node of nodes) {
+      if (hasCycle(node.id)) {
+        hasCycles = true;
+        break;
+      }
+    }
+
+    if (hasCycles) {
+      warnings.push('Architecture contains cycles - ensure this is intentional');
+    }
+
+    // Industry Standard Security & Monitoring Validation
+    if (hasDatabase && !hasCache && appServers.length > 1) {
+      warnings.push('Consider adding a cache layer to reduce database load and improve security');
+    }
+
+    if (hasMessageQueue && !hasCache) {
+      warnings.push('Consider adding a cache layer for message queue performance');
+    }
+
+    if (totalNodes > 10 && !hasCDN) {
+      warnings.push('Consider adding a CDN for global content delivery in large architectures');
+    }
+
+    // Industry Standard Performance Optimization
+    if (appServers.length > 3 && !hasLoadBalancer) {
+      warnings.push('Consider adding a load balancer to distribute traffic across multiple app servers');
+    }
+
+    const dbCount = nodes.filter(n => n.data.type === 'db').length;
+    if (hasDatabase && dbCount === 1 && totalNodes > 5) {
+      warnings.push('Consider adding database replication for high availability');
+    }
+
+    // Industry Standard Security Requirements
+    if (totalNodes > 5 && !hasGateway) {
+      warnings.push('Consider adding an API gateway for centralized security and authentication');
+    }
+
+    // Industry Standard Data Layer Patterns
+    if (hasDatabase && !hasCache && appServers.length > 1) {
+      warnings.push('Consider adding a cache layer between applications and database for better performance');
+    }
+
+    if (hasDatabase && appServers.length > 2) {
+      warnings.push('Consider using a database connection pool or proxy for multiple application servers');
+    }
+
+    // Industry Standard Monitoring Requirements
+    if (totalNodes > 3) {
+      warnings.push('Implement centralized logging and monitoring for production architectures');
+    }
+
+    // Industry Standard Disaster Recovery
+    if (totalNodes > 8 && !nodes.some(n => n.data.type === 'dr')) {
+      warnings.push('Consider adding disaster recovery components for business continuity');
+    }
+
+    // Industry Standard Auto-scaling
+    if (appServers.length > 2 && !nodes.some(n => n.data.type === 'asg')) {
+      warnings.push('Consider adding auto-scaling groups for dynamic resource management');
     }
 
     return { isValid, errors, warnings };
-  }, [nodes, edges, entryPoint]);
+  }, [nodes, edges]);
 
   // Update validation effect
   const [validationResult, setValidationResult] = useState<ValidationResult>({
@@ -1740,12 +1831,7 @@ export default function Automata() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [selectedEdge]);
 
-  // Add useEffect to initialize user node
-  useEffect(() => {
-    if (!nodes.some(node => node.id === 'user')) {
-      setNodes(prevNodes => [userNode, ...prevNodes]);
-    }
-  }, []);
+
 
   // Modify the ReactFlow component to not add userNode again
   return (
@@ -1839,9 +1925,9 @@ export default function Automata() {
                 ...node,
                 data: {
                   ...node.data,
-                  isStartingPoint: node.id === entryPoint?.id,
-                  isUser: node.id === 'user',
-                  isEntryPoint: node.id === entryPoint?.id,
+                  isStartingPoint: false,
+  
+                  isEntryPoint: false,
                   isDatabase: node.data.type === 'database'
                 }
               }))}
@@ -1890,10 +1976,7 @@ export default function Automata() {
                         setEdges(edges => edges.filter(edge => 
                           edge.source !== selectedNode.id && edge.target !== selectedNode.id
                         ));
-                        // If it was the entry point, clear it
-                        if (entryPoint?.id === selectedNode.id) {
-                          setEntryPoint(null);
-                        }
+
                         setShowConfig(false);
                       }}
                     />
@@ -2046,11 +2129,7 @@ export default function Automata() {
                           setShowValidation(false);
                           setCurrentLatency(0);
                           setCurrentReliability(100);
-                          // Reset user node position
-                          setUserNode(prev => ({
-                            ...prev,
-                            position: { x: 50, y: 50 }
-                          }));
+
                         }
                       }}
                       style={{ 

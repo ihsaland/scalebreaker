@@ -1,4 +1,5 @@
-import type { Node, Edge, NodeType } from '../types/architecture';
+import type { Node, Edge } from 'reactflow';
+import type { NodeType } from '../types/architecture';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -27,11 +28,11 @@ export const validateNodeConnections = (
     case 'lb':
     case 'gateway':
       const hasValidIncoming = edges.some(edge => 
-        (edge.source === 'user' || edge.source === entryPoint?.id) && 
+        edge.source === entryPoint?.id && 
         edge.target === node.id
       );
-      if (!hasValidIncoming) {
-        errors.push(`${node.data.serverType} must have incoming connection from user or entry point`);
+      if (!hasValidIncoming && entryPoint) {
+        errors.push(`${node.data.serverType} must have incoming connection from entry point`);
       }
       if (outgoingConnections === 0) {
         errors.push(`${node.data.serverType} must have outgoing connections`);
@@ -141,7 +142,7 @@ export const validateArchitecture = (
 
   // Validate each node
   nodes.forEach(node => {
-    if (!connectedNodes.has(node.id) && node.id !== 'user') {
+    if (!connectedNodes.has(node.id)) {
       const nodeName = node.data.serverType || node.data.type;
       errors.push(`Node "${nodeName}" is isolated`);
       isValid = false;
